@@ -1,0 +1,42 @@
+{
+  "agents": {
+    "web_search":      { "enabled": true,  "timeout_soft_s": 30, "timeout_hard_s": 120 },
+    "memory":          { "enabled": true,  "timeout_soft_s": 30, "timeout_hard_s": 120 },
+    "code":            { "enabled": true,  "timeout_soft_s": 45, "timeout_hard_s": 150 },
+    "neural_network":  { "enabled": true,  "timeout_soft_s": 60, "timeout_hard_s": 300 },
+    "fitness":         { "enabled": true,  "timeout_soft_s": 20, "timeout_hard_s":  60 },
+    "taskforge":       { "enabled": true,  "timeout_soft_s": 30, "timeout_hard_s":  90 },
+    "marketing":       { "enabled": true,  "timeout_soft_s": 60, "timeout_hard_s": 180 },
+    "file":            { "enabled": true,  "timeout_soft_s": 20, "timeout_hard_s":  60 },
+    "email":           { "enabled": true,  "timeout_soft_s": 30, "timeout_hard_s":  90 },
+    "calendar":        { "enabled": true,  "timeout_soft_s": 30, "timeout_hard_s":  90 },
+    "voice":           { "enabled": true,  "timeout_soft_s": 60, "timeout_hard_s": 180 },
+    "image":           { "enabled": true,  "timeout_soft_s": 90, "timeout_hard_s": 300 },
+    "computer_use":    { "enabled": true,  "timeout_soft_s": 30, "timeout_hard_s": 120 },
+    "github":          { "enabled": true,  "timeout_soft_s": 30, "timeout_hard_s":  90 },
+    "rag":             { "enabled": true,  "timeout_soft_s": 45, "timeout_hard_s": 120 },
+    "obsidian":        { "enabled": true,  "timeout_soft_s": 20, "timeout_hard_s":  60 },
+    "brain":           { "enabled": true,  "timeout_soft_s": 60, "timeout_hard_s": 150 },
+    "mcp":             { "enabled": true,  "timeout_soft_s": 30, "timeout_hard_s": 120 },
+    "morning_briefing":{ "enabled": true,  "timeout_soft_s": 90, "timeout_hard_s": 240 }
+  },
+  "_comment": "timeout_soft_s: avisa al usuario pero sigue esperando. timeout_hard_s: cancela y devuelve error.",
+
+  "model_router": {
+    "local_model": "qwen2.5:14b",
+    "timeout_seconds": 45,
+    "max_local_context": 8192,
+    "allow_cloud_fallback": false,
+    "cloud_model": null,
+    "cb_failure_threshold": 3,
+    "cb_recovery_timeout_seconds": 60.0
+  },
+
+  "sandbox": {
+    "sandbox_workspace": "data/sandbox_workspace",
+    "execution_timeout": 30,
+    "max_cpu_seconds": 30,
+    "max_memory_mb": 512,
+    "max_file_size_mb": 50
+  }
+}

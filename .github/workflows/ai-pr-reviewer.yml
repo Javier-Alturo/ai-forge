@@ -1,0 +1,39 @@
+name: AI Code Reviewer
+
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Run AI PR Reviewer
+        uses: coderabbitai/openai-pr-reviewer@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        with:
+          debug: false
+          review_simple_changes: false
+          review_comment_lgtm: false
+          openai_light_model: "gpt-4o-mini"
+          openai_heavy_model: "gpt-4o-mini"
+          language: es-ES
+          system_message: |
+            Eres `@coderabbitai` (un programador Senior y experto revisor de código AI-Forge).
+            Tus responsabilidades son:
+            1. Analizar el código para asegurar que sigue las mejores prácticas.
+            2. Dejar comentarios específicos línea por línea si encuentras errores, ineficiencias o mejoras posibles.
+            3. Si el código necesita mejoras sustanciales, solicita cambios explícitamente (Request Changes).
+            4. Si el código es excelente y cumple con los estándares, apruébalo (Approve).
+            Responde siempre en español. No seas condescendiente, sé directo y técnico.

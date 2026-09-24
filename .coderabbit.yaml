@@ -1,0 +1,34 @@
+# CodeRabbit configuration
+# Docs: https://docs.coderabbit.ai/guides/configure-coderabbit
+
+language: "es"
+
+reviews:
+  profile: "chill"
+  review_simple_changes: false
+  review_comment_lgtm: false
+
+  # Ignorar COMPLETAMENTE archivos de CI/CD y configuración
+  path_instructions:
+    - path: ".github/**"
+      instructions: "Do not review CI/CD workflow files. Skip all comments on these files."
+    - path: "*.yml"
+      instructions: "Do not review YAML files. Skip all comments on these files."
+    - path: "*.yaml"
+      instructions: "Do not review YAML files. Skip all comments on these files."
+    - path: "knowledge/**"
+      instructions: "Do not review knowledge base documentation files. These are personal notes, skip all comments."
+    - path: "pruebas/**"
+      instructions: "Do not review test/utility scripts in the pruebas folder. Skip all comments."
+
+  auto_review:
+    enabled: true
+    drafts: false
+    # Excluir completamente los archivos de CI del análisis
+    ignore_title_keywords:
+      - "ci:"
+      - "fix:"
+      - "config:"
+
+chat:
+  auto_reply: true

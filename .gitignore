@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+
+# Secrets
+.env
+.env.*
+!.env.example
+credentials.json
+token.json
+
+# Generated images
+outputs/
+
+# Local agent memory (user-specific)
+memory_store.json
+memory_store.json.migrated
+
+# ChromaDB persistente (memoria + RAG)
+data/chromadb/
+
+# Sesiones de Playwright (cookies privadas - NO subir)
+data/browser_sessions/
+
+# Datos personales de fitness
+data/fitness/
+
+# Base de datos de leads (datos de scraping privados)
+data/marketing_leads_db.json
+
+# Temporary Python files under project temp directory
+temp/
+/temp/
+*.tmp.py
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Distribution / test
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# SkillForge — backups automáticos de dynamic_tools.py (no versionar)
+agents/dynamic_tools_history/
+
+# Sandbox — workspace de ejecución aislada
+data/sandbox_workspace/
+
+# Debug logs del MCP
+mcp_debug.log
+mcp_error.log
+
+# Sesiones de WhatsApp Web
+data/whatsapp_session/
+data/whatsapp_session_old_*/
+data/whatsapp_session_dftech_*/
+data/wsp_listener_state.json
+
+# Logs de ejecucion
+data/logs/
+

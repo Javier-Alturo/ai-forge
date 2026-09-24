@@ -1,0 +1,66 @@
+{
+    "name": "Webhook + Ollama Local",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "chat",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "id": "1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [240, 300]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://192.168.1.5:11434/api/generate",
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "model",
+                "value": "llama3.2"
+              },
+              {
+                "name": "prompt",
+                "value": "={{ $json.body.message }}"
+              },
+              {
+                "name": "stream",
+                "value": false
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "2",
+        "name": "Ollama",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [460, 300]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify({ response: $json.response }) }}",
+          "options": {}
+        },
+        "id": "3",
+        "name": "Respond",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [680, 300]
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [[{ "node": "Ollama", "type": "main", "index": 0 }]]
+      },
+      "Ollama": {
+        "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+      }
+    }
+  }

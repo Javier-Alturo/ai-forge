@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-Forge Dashboard</title>
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+  <style>
+    @keyframes thinking-bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+      40% { transform: translateY(-4px); opacity: 1; }
+    }
+    .thinking-dot { animation: thinking-bounce 1s ease-in-out infinite; }
+    .thinking-dot:nth-child(2) { animation-delay: 0.15s; }
+    .thinking-dot:nth-child(3) { animation-delay: 0.3s; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
+  <header class="border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex flex-wrap items-center gap-3 justify-between">
+    <h1 class="text-xl font-semibold tracking-tight shrink-0">
+      AI-Forge <span class="text-emerald-600 dark:text-emerald-400 font-normal">Dashboard</span>
+    </h1>
+    <div id="status-block" class="flex-1 min-w-[12rem] text-center text-xs text-slate-600 dark:text-slate-400 font-mono leading-relaxed px-2">
+      <div id="status-llm" class="font-semibold text-slate-800 dark:text-slate-200">Cargando modelo…</div>
+      <div id="status-gpu" class="mt-0.5 break-words">GPU: …</div>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <button type="button" id="btn-theme" title="Tema claro / oscuro"
+        class="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
+        Tema
+      </button>
+      <button type="button" id="btn-export-pdf" title="Exportar chat a PDF"
+        class="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 text-xs font-medium">
+        PDF
+      </button>
+      <span class="hidden sm:inline text-xs text-slate-500 dark:text-slate-500">:8000</span>
+    </div>
+  </header>
+  <main class="flex-1 flex min-h-0">
+    <!-- Agentes -->
+    <aside class="w-64 border-r border-slate-200 dark:border-slate-800 p-3 overflow-y-auto shrink-0 bg-white/80 dark:bg-transparent">
+      <h2 class="text-xs uppercase text-slate-500 dark:text-slate-500 mb-2 font-semibold">Agentes</h2>
+      <ul id="agent-list" class="space-y-1 text-sm"></ul>
+    </aside>
+    <!-- Chat -->
+    <section class="flex-1 flex flex-col min-w-0 border-r border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-transparent">
+      <div class="px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-500 flex justify-between items-center gap-2">
+        <span>Chat (mismo orquestador que CLI)</span>
+      </div>
+      <div id="chat" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm"></div>
+      <div id="thinking-row" class="hidden px-4 py-2 border-t border-slate-200 dark:border-slate-800 bg-emerald-50/90 dark:bg-emerald-950/40">
+        <div class="flex items-center gap-2 text-emerald-800 dark:text-emerald-200 text-sm font-medium">
+          <span>Pensando</span>
+          <span class="inline-flex gap-0.5 items-end h-4">
+            <span class="thinking-dot inline-block w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"></span>
+            <span class="thinking-dot inline-block w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"></span>
+            <span class="thinking-dot inline-block w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"></span>
+          </span>
+        </div>
+      </div>
+      <form id="chat-form" class="p-3 border-t border-slate-200 dark:border-slate-800 flex gap-2 bg-white dark:bg-slate-950/50">
+        <input id="msg" type="text" placeholder="Mensaje…"
+          class="flex-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500" autocomplete="off" />
+        <button type="submit" id="btn-send"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+          Enviar
+        </button>
+      </form>
+    </section>
+    <!-- Panel Derecho (Tabs) -->
+    <aside class="w-[28rem] flex flex-col shrink-0 bg-slate-100 dark:bg-slate-900/50 border-l border-slate-200 dark:border-transparent">
+      <div class="flex border-b border-slate-200 dark:border-slate-800 text-xs bg-white dark:bg-slate-950/80">
+        <button id="tab-logs" class="flex-1 py-3 text-center font-medium border-b-2 border-amber-500 text-amber-600 dark:text-amber-400">
+          Logs A2A
+        </button>
+        <button id="tab-taskforge" class="flex-1 py-3 text-center font-medium text-slate-500 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-700 dark:hover:text-slate-200">
+          TaskForge (Metas y Tareas)
+        </button>
+      </div>
+      
+      <!-- Contenido Logs -->
+      <div id="content-logs" class="flex-1 flex flex-col min-h-0">
+        <div class="px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-500 flex justify-between">
+          <span>Logs de comunicación A2A</span>
+          <button type="button" id="clear-logs" class="text-amber-600 dark:text-amber-400 hover:opacity-80 text-xs">Limpiar</button>
+        </div>
+        <pre id="logs" class="flex-1 overflow-y-auto p-2 text-xs text-amber-900 dark:text-amber-100/90 leading-relaxed whitespace-pre-wrap"></pre>
+      </div>
+
+      <!-- Contenido TaskForge -->
+      <div id="content-taskforge" class="flex-1 flex flex-col min-h-0 hidden p-3 overflow-y-auto space-y-3">
+        <!-- Header with refresh -->
+        <div class="flex justify-between items-center pb-1 border-b border-slate-200 dark:border-slate-800">
+          <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200">⚔️ Modo RPG · Tu Personaje</h3>
+          <button type="button" id="refresh-taskforge" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline">🔄 Actualizar</button>
+        </div>
+
+        <!-- Character Card -->
+        <div id="rpg-char-card" class="rounded-xl border border-indigo-400/30 bg-gradient-to-br from-slate-900 to-indigo-950/60 p-3 space-y-2">
+          <div class="flex items-center gap-3">
+            <div id="rpg-avatar" class="w-12 h-12 rounded-full flex items-center justify-center text-2xl bg-indigo-700/40 border border-indigo-400/40 shadow-lg shadow-indigo-500/20">🧙</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-white tracking-wide">User</span>
+                <span id="rpg-char-level" class="text-[10px] bg-amber-500/20 border border-amber-400/40 text-amber-300 px-1.5 py-0.5 rounded font-bold">LVL 1</span>
+              </div>
+              <div class="text-[10px] text-slate-400 mb-1">Exp. Total: <span id="rpg-total-xp">0</span> XP</div>
+              <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div id="rpg-char-bar" class="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 transition-all duration-700" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Stat grid -->
+          <div id="rpg-stats-grid" class="grid grid-cols-3 gap-1.5 pt-1"></div>
+        </div>
+
+        <!-- Daily Habit Checklist -->
+        <div class="rounded-lg border border-slate-700/60 bg-slate-900/40 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">📋 Plan de Hoy</h4>
+            <span id="tf-daily-count" class="text-[10px] text-slate-500">0/0 completados</span>
+          </div>
+          <div id="tf-habits" class="space-y-1.5">
+            <div class="text-xs text-slate-500 italic">Cargando hábitos...</div>
+          </div>
+        </div>
+
+        <!-- Metas Semanales -->
+        <div class="rounded-lg border border-slate-700/60 bg-slate-900/40 p-3">
+          <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">📅 Metas Semanales</h4>
+          <div id="tf-weekly-goals" class="space-y-2">
+            <div class="text-xs text-slate-500 italic">Cargando metas semanales...</div>
+          </div>
+        </div>
+
+        <!-- Metas / Goals progress compact -->
+        <div class="rounded-lg border border-slate-700/60 bg-slate-900/40 p-3">
+          <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">🎯 Progreso de Metas</h4>
+          <div id="tf-goals" class="space-y-2">
+            <div class="text-xs text-slate-500 italic">Cargando metas...</div>
+          </div>
+          <form id="form-new-goal" class="mt-3 pt-3 border-t border-slate-700/40 space-y-2">
+            <div class="text-xs font-semibold text-slate-400 mb-1">+ Nueva Meta</div>
+            <input id="goal-title" type="text" placeholder="Nombre de la meta…" required
+              class="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+            <div class="flex gap-2">
+              <input id="goal-date" type="date"
+                class="flex-1 rounded border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+              <input id="goal-color" type="color" value="#6366f1" title="Color"
+                class="h-[30px] w-10 rounded border border-slate-700 bg-slate-900 cursor-pointer" />
+            </div>
+            <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-medium py-1.5 rounded transition-colors">Crear Meta</button>
+            <div id="goal-feedback" class="text-xs text-center hidden"></div>
+          </form>
+        </div>
+
+        <!-- Add Habit -->
+        <div class="rounded-lg border border-slate-700/60 bg-slate-900/40 p-3">
+          <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">⚡ Añadir Hábito</h4>
+          <form id="form-new-habit" class="space-y-2">
+            <select id="habit-goal" required
+              class="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+              <option value="">Selecciona una meta…</option>
+            </select>
+            <input id="habit-title" type="text" placeholder="Descripción del hábito diario…" required
+              class="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+            <button type="submit" class="w-full bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-medium py-1.5 rounded transition-colors">Añadir Hábito</button>
+            <div id="habit-feedback" class="text-xs text-center hidden"></div>
+          </form>
+        </div>
+
+        <!-- Tasks today -->
+        <div class="rounded-lg border border-slate-700/60 bg-slate-900/40 p-3">
+          <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">⏰ Tareas de Hoy</h4>
+          <div id="tf-tasks" class="space-y-1.5">
+            <div class="text-xs text-slate-500 italic">Cargando tareas...</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+  <script>
+    const AGENT_IDS = new Set([
+      'orchestrator', 'web_search', 'memory', 'code', 'neural_network', 'file',
+      'fitness', 'taskforge', 'reminder', 'marketing',
+      'email', 'calendar', 'voice', 'image', 'computer_use', 'github', 'rag',
+      'obsidian', 'rag_obsidian', 'mcp',
+    ]);
+
+    const agentList = document.getElementById('agent-list');
+    const chat = document.getElementById('chat');
+    const logs = document.getElementById('logs');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('msg');
+    const btnSend = document.getElementById('btn-send');
+    const thinkingRow = document.getElementById('thinking-row');
+    const statusLlm = document.getElementById('status-llm');
+    const statusGpu = document.getElementById('status-gpu');
+
+    // Sesion unica por pestaña del navegador
+    const sessionId = crypto.randomUUID();
+
+    // WebSocket de CHAT (streaming)
+    const chatProto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const chatWs = new WebSocket(chatProto + '://' + location.host + '/ws/chat/' + sessionId);
+    let currentBotBubble = null;
+    let currentBotBody = null;
+
+    chatWs.onmessage = (e) => {
+      if (e.data === '\x00END\x00') {
+        // Fin de respuesta
+        if (currentBotBubble) {
+          const text = currentBotBody.textContent;
+          chatMessages.push({ role: 'bot', text, ts: formatChatTime(new Date()) });
+          currentBotBubble = null;
+          currentBotBody = null;
+        }
+        setThinking(false);
+        loadTaskForgeData();
+        return;
+      }
+      // Chunk de streaming: añadir al bubble actual
+      if (!currentBotBubble) {
+        const ts = formatChatTime(new Date());
+        const wrap = document.createElement('div');
+        wrap.className = 'mr-8';
+        const meta = document.createElement('div');
+        meta.className = 'text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-500 mb-1 text-left';
+        meta.textContent = 'Orquestador · ' + ts;
+        const bubble = document.createElement('div');
+        bubble.className = 'rounded-lg bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-900/40 px-3 py-2 text-emerald-900 dark:text-emerald-100';
+        const body = document.createElement('div');
+        body.className = 'font-mono whitespace-pre-wrap break-words';
+        bubble.appendChild(body);
+        wrap.appendChild(meta);
+        wrap.appendChild(bubble);
+        chat.appendChild(wrap);
+        currentBotBubble = wrap;
+        currentBotBody = body;
+      }
+      currentBotBody.textContent += e.data;
+      chat.scrollTop = chat.scrollHeight;
+    };
+
+    chatWs.onerror = () => {
+      appendChat('bot', 'Error: WebSocket de chat desconectado.');
+      setThinking(false);
+    };
+    /** @type {{ role: string, text: string, ts: string }[]} */
+    let chatMessages = [];
+    /** @type {Map<string, HTMLLIElement>} */
+    const agentLiById = new Map();
+    /** @type {string[]} */
+    let agentStack = ['orchestrator'];
+
+    function normalizeAgentTarget(target) {
+      const t = (target || '').trim();
+      if (t.startsWith('mcp:')) return 'mcp';
+      return t;
+    }
+
+    function setThinking(on) {
+      thinkingRow.classList.toggle('hidden', !on);
+      btnSend.disabled = on;
+      input.disabled = on;
+    }
+
+    function formatChatTime(d) {
+      return d.toLocaleString('es-ES', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+      });
+    }
+
+    function appendChat(role, text) {
+      const ts = formatChatTime(new Date());
+      chatMessages.push({ role, text, ts });
+
+      const wrap = document.createElement('div');
+      wrap.className = role === 'user' ? 'ml-8' : 'mr-8';
+
+      const meta = document.createElement('div');
+      meta.className = 'text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-500 mb-1 ' + (role === 'user' ? 'text-right' : 'text-left');
+      meta.textContent = (role === 'user' ? 'Tú' : 'Orquestador') + ' · ' + ts;
+
+      const bubble = document.createElement('div');
+      bubble.className = role === 'user'
+        ? 'rounded-lg bg-slate-200 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-200'
+        : 'rounded-lg bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-900/40 px-3 py-2 text-emerald-900 dark:text-emerald-100';
+
+      const body = document.createElement('div');
+      body.className = 'font-mono whitespace-pre-wrap break-words';
+      body.textContent = text;
+
+      bubble.appendChild(body);
+      wrap.appendChild(meta);
+      wrap.appendChild(bubble);
+      chat.appendChild(wrap);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function appendLog(line) {
+      logs.textContent += line + '\n';
+      logs.scrollTop = logs.scrollHeight;
+      parseA2aLine(line);
+    }
+
+    function renderAgentHighlight() {
+      const activeId = agentStack.length ? agentStack[agentStack.length - 1] : 'orchestrator';
+      agentLiById.forEach((li, id) => {
+        const on = id === activeId;
+        li.className =
+          'flex items-center gap-2 py-1.5 px-2 rounded border transition-colors ' +
+          (on
+            ? 'border-emerald-500 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-100 ring-1 ring-emerald-500/50'
+            : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200');
+        const dot = li.querySelector('.status-dot');
+        if (dot) {
+          dot.className = 'status-dot w-2 h-2 rounded-full shrink-0 ' +
+            (on ? 'bg-emerald-500 shadow shadow-emerald-500/50' : 'bg-slate-400 dark:bg-slate-600');
+        }
+      });
+    }
+
+    function parseA2aLine(line) {
+      if (!line.startsWith('[A2A')) return;
+      const m = line.match(/\]\s*(\S+)\s*->\s*([^|]+?)\s*\|\s*(\S+)/);
+      if (!m) return;
+      const source = m[1].trim();
+      const target = m[2].trim();
+      const action = m[3].trim();
+
+      if (
+        agentStack.length &&
+        agentStack[agentStack.length - 1] === 'memory' &&
+        source !== 'memory'
+      ) {
+        const stillDelegating = target === 'memory' && action === 'invoke_memory_agent_graph';
+        if (!stillDelegating && AGENT_IDS.has(source)) {
+          agentStack.pop();
+        }
+      }
+
+      if (source === 'orchestrator' && action === 'invoke_subgraph') {
+        agentStack.push(normalizeAgentTarget(target));
+        renderAgentHighlight();
+        return;
+      }
+      if (target === 'orchestrator' && action === 'subgraph_done') {
+        while (agentStack.length && agentStack[agentStack.length - 1] !== source) {
+          agentStack.pop();
+        }
+        if (agentStack.length && agentStack[agentStack.length - 1] === source) {
+          agentStack.pop();
+        }
+        if (!agentStack.length) agentStack.push('orchestrator');
+        renderAgentHighlight();
+        return;
+      }
+      if (target === 'memory' && action === 'invoke_memory_agent_graph' && AGENT_IDS.has(source)) {
+        agentStack.push('memory');
+        renderAgentHighlight();
+      }
+    }
+
+    async function loadAgents() {
+      const r = await fetch('/api/agents');
+      const data = await r.json();
+      agentList.innerHTML = '';
+      agentLiById.clear();
+      (data.agents || []).forEach(a => {
+        const li = document.createElement('li');
+        li.dataset.agentId = a.id;
+        li.className = 'flex items-center gap-2 py-1.5 px-2 rounded border border-transparent';
+        const dot = document.createElement('span');
+        dot.className = 'status-dot w-2 h-2 rounded-full shrink-0 ' + (a.active ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600');
+        const label = document.createElement('span');
+        label.textContent = a.name;
+        li.appendChild(dot);
+        li.appendChild(label);
+        agentList.appendChild(li);
+        agentLiById.set(a.id, li);
+      });
+      renderAgentHighlight();
+    }
+
+    async function refreshStatus() {
+      try {
+        const r = await fetch('/api/status');
+        const s = await r.json();
+        statusLlm.textContent = s.model_label + (s.ollama_base ? ' @ ' + s.ollama_base : '');
+        statusGpu.textContent = s.gpu || '—';
+      } catch {
+        statusLlm.textContent = 'Estado LLM no disponible';
+        statusGpu.textContent = '';
+      }
+    }
+
+    function exportChatPdf() {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('jsPDF no cargó; revisa la conexión o el bloqueador.');
+        return;
+      }
+      if (!chatMessages.length) {
+        alert('No hay mensajes para exportar.');
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const margin = 14;
+      const pageW = doc.internal.pageSize.getWidth() - 2 * margin;
+      let y = 16;
+      doc.setFontSize(14);
+      doc.text('AI-Forge — conversación', margin, y);
+      y += 10;
+      doc.setFontSize(9);
+      chatMessages.forEach((m) => {
+        const header = `[${m.ts}] ${m.role === 'user' ? 'Usuario' : 'Orquestador'}`;
+        doc.setFont('helvetica', 'bold');
+        const hLines = doc.splitTextToSize(header, pageW);
+        hLines.forEach((ln) => {
+          if (y > 280) { doc.addPage(); y = margin; }
+          doc.text(ln, margin, y);
+          y += 5;
+        });
+        doc.setFont('helvetica', 'normal');
+        const bodyLines = doc.splitTextToSize(m.text, pageW);
+        bodyLines.forEach((ln) => {
+          if (y > 285) { doc.addPage(); y = margin; }
+          doc.text(ln, margin, y);
+          y += 4.5;
+        });
+        y += 4;
+      });
+      const fname = 'ai-forge-chat-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.pdf';
+      doc.save(fname);
+    }
+
+    function initTheme() {
+      const saved = localStorage.getItem('ai-forge-theme');
+      if (saved === 'light') document.documentElement.classList.remove('dark');
+      else if (saved === 'dark') document.documentElement.classList.add('dark');
+      else if (!window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+
+    document.getElementById('btn-theme').onclick = () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem(
+        'ai-forge-theme',
+        document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+      );
+    };
+
+    document.getElementById('btn-export-pdf').onclick = exportChatPdf;
+
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(proto + '://' + location.host + '/ws/logs');
+    ws.onmessage = (e) => appendLog(e.data);
+    ws.onopen = () => appendLog('[dashboard] WebSocket logs conectado');
+    ws.onerror = () => appendLog('[dashboard] Error WebSocket');
+    setInterval(() => { if (ws.readyState === WebSocket.OPEN) ws.send('ping'); }, 25000);
+
+    document.getElementById('clear-logs').onclick = () => { logs.textContent = ''; };
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      if (chatWs.readyState !== WebSocket.OPEN) {
+        appendChat('bot', 'Error: WebSocket no conectado. Recarga la página.');
+        return;
+      }
+      input.value = '';
+      appendChat('user', text);
+      setThinking(true);
+      chatWs.send(text);
+    });
+
+    initTheme();
+    loadAgents();
+    refreshStatus();
+    setInterval(refreshStatus, 5000);
+
+    // --- LÓGICA DE TABS Y DATOS TASKFORGE ---
+    const btnTabLogs = document.getElementById('tab-logs');
+    const btnTabTaskForge = document.getElementById('tab-taskforge');
+    const contentLogs = document.getElementById('content-logs');
+    const contentTaskForge = document.getElementById('content-taskforge');
+
+    btnTabLogs.onclick = () => {
+      btnTabLogs.className = "flex-1 py-3 text-center font-medium border-b-2 border-amber-500 text-amber-600 dark:text-amber-400";
+      btnTabTaskForge.className = "flex-1 py-3 text-center font-medium text-slate-500 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-700 dark:hover:text-slate-200";
+      contentLogs.classList.remove('hidden');
+      contentTaskForge.classList.add('hidden');
+    };
+
+    btnTabTaskForge.onclick = () => {
+      btnTabTaskForge.className = "flex-1 py-3 text-center font-medium border-b-2 border-emerald-500 text-emerald-600 dark:text-emerald-400";
+      btnTabLogs.className = "flex-1 py-3 text-center font-medium text-slate-500 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-700 dark:hover:text-slate-200";
+      contentTaskForge.classList.remove('hidden');
+      contentLogs.classList.add('hidden');
+      loadTaskForgeData();
+    };
+
+    async function loadTaskForgeData() {
+      try {
+        const response = await fetch('/api/taskforge/data');
+        const data = await response.json();
+        renderTaskForge(data);
+      } catch (err) {
+        console.error("Error loading taskforge data:", err);
+      }
+    }
+
+    function renderTaskForge(data) {
+      const RPG_AVATARS = { 1: '🧙', 2: '⚔️', 3: '🧝', 5: '🦸', 10: '👑' };
+      const rpg = data.rpg || {};
+
+      // ── Character card ──────────────────────────────────────────────────────
+      if (rpg.char_level !== undefined) {
+        const lvl = rpg.char_level;
+        document.getElementById('rpg-char-level').textContent = `LVL ${lvl}`;
+        document.getElementById('rpg-total-xp').textContent = rpg.char_xp || 0;
+        document.getElementById('rpg-char-bar').style.width = `${rpg.char_xp_pct || 0}%`;
+        const avatarKey = Object.keys(RPG_AVATARS).reverse().find(k => lvl >= Number(k)) || 1;
+        document.getElementById('rpg-avatar').textContent = RPG_AVATARS[avatarKey] || '🧙';
+      }
+
+      // ── Stat grid ───────────────────────────────────────────────────────────
+      const statsGrid = document.getElementById('rpg-stats-grid');
+      statsGrid.innerHTML = '';
+      (rpg.stats || []).forEach(s => {
+        const statLevels = ['F', 'E', 'D', 'C', 'B', 'A', 'S', 'SS', 'SSS'];
+        const rankLabel = statLevels[Math.min(s.level, statLevels.length - 1)];
+        const isDoneToday = s.habits_done_today >= s.habits_total && s.habits_total > 0;
+        const card = document.createElement('div');
+        card.className = `rounded-lg p-2 border ${isDoneToday ? 'border-opacity-80' : 'border-opacity-20'} flex flex-col gap-1`;
+        card.style.borderColor = s.color;
+        card.style.background = `${s.color}18`;
+        card.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span class="text-[10px] font-bold" style="color:${s.color}">${s.stat}</span>
+            <span class="text-[10px] bg-black/30 rounded px-1 font-bold" style="color:${s.color}">Lv${s.level} <span class="opacity-60">${rankLabel}</span></span>
+          </div>
+          <div class="text-[9px] text-slate-400 truncate leading-tight">${s.title}</div>
+          <div class="w-full bg-black/30 rounded-full h-1 overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-700" style="width:${s.xp_pct}%;background:${s.color}"></div>
+          </div>
+          <div class="text-[9px] text-slate-500">${s.xp_in_level}/${s.xp_per_level} XP ${isDoneToday ? '✅' : `${s.habits_done_today}/${s.habits_total}`}</div>
+        `;
+        statsGrid.appendChild(card);
+      });
+
+      // ── Daily habits checklist ───────────────────────────────────────────────
+      const habitsDiv = document.getElementById('tf-habits');
+      habitsDiv.innerHTML = '';
+      const todayStr = new Date().toISOString().split('T')[0];
+      const allHabits = data.habits || [];
+      const doneCount = allHabits.filter(h => h.done_today || h.last_completed === todayStr).length;
+      const countEl = document.getElementById('tf-daily-count');
+      if (countEl) countEl.textContent = `${doneCount}/${allHabits.length} completados`;
+
+      if (allHabits.length === 0) {
+        habitsDiv.innerHTML = '<div class="text-xs text-slate-500 italic">No hay hábitos configurados.</div>';
+      } else {
+        // Group by goal
+        const byGoal = {};
+        allHabits.forEach(h => {
+          const gid = h.goal_id;
+          if (!byGoal[gid]) byGoal[gid] = [];
+          byGoal[gid].push(h);
+        });
+
+        Object.entries(byGoal).forEach(([gid, habs]) => {
+          const goal = (data.goals || []).find(g => g.id === gid);
+          if (goal) {
+            const groupLabel = document.createElement('div');
+            groupLabel.className = 'text-[10px] font-bold uppercase tracking-wider mt-1 mb-0.5 px-1';
+            groupLabel.style.color = (data.rpg?.stats || []).find(s => s.goal_id === gid)?.color || '#94a3b8';
+            groupLabel.textContent = goal.title;
+            habitsDiv.appendChild(groupLabel);
+          }
+
+          habs.forEach(h => {
+            const isDone = h.done_today || h.last_completed === todayStr;
+            const xpReward = h.xp_reward || 20;
+            const row = document.createElement('div');
+            row.className = `flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-all
+              ${isDone 
+                ? 'bg-emerald-900/20 border border-emerald-700/30' 
+                : 'bg-slate-800/60 border border-slate-700/40 hover:bg-slate-700/40'}`;
+            row.innerHTML = `
+              <div class="flex items-center justify-center w-5 h-5 flex-shrink-0">
+                <input type="checkbox" 
+                  class="habit-checkbox w-4 h-4 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-emerald-500 transition-all"
+                  data-id="${h.id}" 
+                  ${isDone ? 'checked' : ''}>
+              </div>
+              <span class="flex-1 ${isDone ? 'line-through text-slate-500 font-medium' : 'text-slate-200'}">${h.title}</span>
+              <div class="flex items-center gap-1 flex-shrink-0">
+                ${h.streak > 0 ? `<span class="text-[10px] text-amber-400">🔥${h.streak}</span>` : ''}
+                <span class="text-[9px] text-slate-500 font-semibold">+${xpReward}XP</span>
+              </div>
+            `;
+
+            row.onclick = async (e) => {
+              const checkbox = row.querySelector('.habit-checkbox');
+              if (checkbox.disabled) return;
+
+              // If the user clicked the checkbox directly, the checked status has already changed.
+              // If the user clicked the row, we toggle the checkbox manually.
+              let targetChecked = !checkbox.checked;
+              if (e.target.type === 'checkbox') {
+                targetChecked = checkbox.checked;
+                e.stopPropagation();
+              } else {
+                checkbox.checked = targetChecked;
+              }
+
+              // Visual feedback
+              checkbox.disabled = true;
+              row.classList.add('opacity-70');
+
+              const habitId = checkbox.getAttribute('data-id');
+              const endpoint = targetChecked ? '/api/taskforge/habits/complete' : '/api/taskforge/habits/uncomplete';
+
+              try {
+                await fetch(endpoint, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ habit_id: habitId }),
+                });
+                await loadTaskForgeData();
+              } catch (err) {
+                console.error('Error toggling habit:', err);
+                checkbox.checked = !targetChecked;
+                checkbox.disabled = false;
+                row.classList.remove('opacity-70');
+              }
+            };
+            habitsDiv.appendChild(row);
+          });
+        });
+      }
+
+      // ── Goals progress ──────────────────────────────────────────────────────
+      const goalsDiv = document.getElementById('tf-goals');
+      const weeklyGoalsDiv = document.getElementById('tf-weekly-goals');
+      
+      goalsDiv.innerHTML = '';
+      weeklyGoalsDiv.innerHTML = '';
+
+      const goals = data.goals || [];
+      const weeklyGoals = goals.filter(g => g.id.startsWith('w_') || g.title.toLowerCase().includes('semanal'));
+      const longTermGoals = goals.filter(g => !g.id.startsWith('w_') && !g.title.toLowerCase().includes('semanal'));
+
+      // Render Weekly Goals
+      if (weeklyGoals.length === 0) {
+        weeklyGoalsDiv.innerHTML = '<div class="text-xs text-slate-500 italic">No hay metas semanales activas.</div>';
+      } else {
+        weeklyGoals.forEach(g => {
+          const statColor = (data.rpg?.stats || []).find(s => s.goal_id === g.id)?.color || g.color || '#6366f1';
+          const div = document.createElement('div');
+          div.className = 'space-y-1';
+          
+          let displayTitle = g.title;
+          if (displayTitle.startsWith('[Semanal] ')) {
+            displayTitle = displayTitle.replace('[Semanal] ', '');
+          }
+          
+          div.innerHTML = `
+            <div class="flex justify-between text-xs">
+              <span class="font-medium text-slate-300">📅 ${displayTitle}</span>
+              <span style="color:${statColor}">${Number(g.progress || 0).toFixed(1)}%</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-700" style="width:${g.progress || 0}%;background:${statColor}"></div>
+            </div>
+          `;
+          weeklyGoalsDiv.appendChild(div);
+        });
+      }
+
+      // Render Long-Term Goals
+      if (longTermGoals.length === 0) {
+        goalsDiv.innerHTML = '<div class="text-xs text-slate-500 italic">No hay metas a largo plazo activas.</div>';
+      } else {
+        longTermGoals.forEach(g => {
+          const statColor = (data.rpg?.stats || []).find(s => s.goal_id === g.id)?.color || g.color || '#6366f1';
+          const div = document.createElement('div');
+          div.className = 'space-y-1';
+          div.innerHTML = `
+            <div class="flex justify-between text-xs">
+              <span class="font-medium text-slate-300">🎯 ${g.title}</span>
+              <span style="color:${statColor}">${Number(g.progress || 0).toFixed(1)}%</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-700" style="width:${g.progress || 0}%;background:${statColor}"></div>
+            </div>
+          `;
+          goalsDiv.appendChild(div);
+        });
+      }
+
+      // ── Tasks ───────────────────────────────────────────────────────────────
+      const tasksDiv = document.getElementById('tf-tasks');
+      tasksDiv.innerHTML = '';
+      const todayTasks = (data.tasks || []).filter(t => t.date === todayStr);
+      if (todayTasks.length === 0) {
+        tasksDiv.innerHTML = '<div class="text-xs text-slate-500 italic">No hay tareas para hoy.</div>';
+      } else {
+        todayTasks.forEach(t => {
+          const pc = { high: 'bg-red-500', medium: 'bg-amber-500', low: 'bg-blue-500' }[t.priority] || 'bg-slate-400';
+          const div = document.createElement('div');
+          div.className = `flex items-center gap-2 p-1.5 rounded text-xs border
+            ${t.completed ? 'border-emerald-800/30 text-slate-500 line-through' : 'border-slate-700/40 text-slate-300'}`;
+          div.innerHTML = `<span class="w-2 h-2 rounded-full flex-shrink-0 ${pc}"></span>
+            <span class="flex-1">${t.title}${t.reminder_time ? ' ⏰'+t.reminder_time : ''}</span>
+            <span class="text-[10px] ${t.completed ? 'text-emerald-500' : 'text-slate-500'}">${t.completed ? 'OK' : 'Pendiente'}</span>`;
+          tasksDiv.appendChild(div);
+        });
+      }
+    }
+
+    document.getElementById('refresh-taskforge').onclick = loadTaskForgeData;
+
+    // --- Formulario: Crear Meta ---
+    document.getElementById('form-new-goal').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('goal-title').value.trim();
+      const date  = document.getElementById('goal-date').value;
+      const color = document.getElementById('goal-color').value;
+      const fb = document.getElementById('goal-feedback');
+      if (!title) return;
+
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.disabled = true;
+      btn.textContent = 'Creando…';
+
+      try {
+        const r = await fetch('/api/taskforge/goals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, target_date: date, color }),
+        });
+        const d = await r.json();
+        fb.textContent = d.message || 'Meta creada ✅';
+        fb.className = 'text-xs text-center text-emerald-600 dark:text-emerald-400';
+        fb.classList.remove('hidden');
+        document.getElementById('goal-title').value = '';
+        document.getElementById('goal-date').value = '';
+        setTimeout(() => fb.classList.add('hidden'), 3000);
+        await loadTaskForgeData();
+      } catch (err) {
+        fb.textContent = 'Error al crear la meta';
+        fb.className = 'text-xs text-center text-red-500';
+        fb.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Crear Meta';
+      }
+    });
+
+    // --- Formulario: Añadir Hábito ---
+    document.getElementById('form-new-habit').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const goal_id = document.getElementById('habit-goal').value;
+      const title   = document.getElementById('habit-title').value.trim();
+      const fb = document.getElementById('habit-feedback');
+      if (!goal_id || !title) return;
+
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.disabled = true;
+      btn.textContent = 'Añadiendo…';
+
+      try {
+        const r = await fetch('/api/taskforge/habits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ goal_id, title }),
+        });
+        const d = await r.json();
+        fb.textContent = d.message || 'Hábito añadido ✅';
+        fb.className = 'text-xs text-center text-indigo-600 dark:text-indigo-400';
+        fb.classList.remove('hidden');
+        document.getElementById('habit-title').value = '';
+        setTimeout(() => fb.classList.add('hidden'), 3000);
+        await loadTaskForgeData();
+      } catch (err) {
+        fb.textContent = 'Error al añadir hábito';
+        fb.className = 'text-xs text-center text-red-500';
+        fb.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Añadir Hábito';
+      }
+    });
+
+    // Rellenar selector de metas en el form de hábitos después de cargar
+    const _origRenderTaskForge = renderTaskForge;
+    renderTaskForge = function(data) {
+      _origRenderTaskForge(data);
+      const sel = document.getElementById('habit-goal');
+      const current = sel.value;
+      sel.innerHTML = '<option value="">Selecciona una meta…</option>';
+      (data.goals || []).forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        opt.textContent = g.title;
+        if (g.id === current) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    // Cargar inicialmente
+    loadTaskForgeData();
+  </script>
+</body>
+</html>
+
