@@ -1,518 +1,520 @@
 # AI-Forge: Local Multi-Agent System 🤖🧠
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![Tests](https://img.shields.io/badge/tests-92%20passed-brightgreen)
-![Agents](https://img.shields.io/badge/agents-15%2B-purple)
+![Agents](https://img.shields.io/badge/agents-17-purple)
 
-**AI-Forge** es un sistema orquestador de Inteligencia Artificial ("Agent-to-Agent" o A2A) de ejecución local diseñado con **LangGraph**. Funciona como un "cerebro digital autónomo" que delega tareas a más de 15 sub-agentes ultra-especializados, logrando que el sistema completo actúe de forma orquestada, mantenga memoria a largo plazo, interactúe con el entorno del usuario y hasta sea capaz de auto-programarse nuevas habilidades.
+**AI-Forge** is a local AI orchestration system built with **LangGraph**. An orchestrator reads each request and hands it to one of 17 specialist agents, so the whole system works as one: it keeps long-term memory, acts on the user's machine and can even write new tools for itself.
 
----
-
-## ✨ Características Principales
-
-- **Orquestación Descentralizada (A2A):** Un Orquestador principal evalúa la petición del usuario y enruta el contexto hacia agentes especialistas (Marketing, RAG, File, Github, Memory, MCP, etc.) reduciendo la sobrecarga cognitiva del LLM.
-- **Auto-Programación (SkillForge Agent):** AI-Forge no es estático. Si le pides hacer algo que no sabe, el **SkillForge Agent** genera código en Python, lo valida con ASTValidator, crea un backup automático y guarda la herramienta dinámicamente con rollback automático si falla.
-- **Second Brain Autónomo (Obsidian Agent):** AI-Forge puede leer tu base de conocimientos (Vault de Obsidian), analizar las notas recientes, cruzarlas con tu progreso de entrenamiento y generar reportes semanales.
-- **Model Context Protocol (MCP Agent):** Integración completa con servidores FastMCP en hilos persistentes. Gestiona commits y Pull Requests directamente desde el chat, sorteando los bloqueos del Credential Manager de Windows.
-- **Memoria Semántica con MemoryGate:** ChromaDB y LlamaIndex empoderan al sistema para que nunca olvide instrucciones pasadas. El MemoryGate clasifica automáticamente cada turno de conversación antes de persistirlo, evitando ruido en la base de datos.
-- **Sandbox de Seguridad de 4 Capas:** Todo el código generado por el LLM pasa por AST Validator → Import Allowlist → Process Runner aislado → Resource Governor antes de ejecutarse. 67 tests automatizados verifican su integridad.
-- **Entorno Local (Privacidad al 100%):** Diseñado para correr primariamente en modelos locales (como `qwen2.5:14b`) mediante Ollama. Con ModelRouter y Circuit Breaker para fallback opcional a la nube.
-- **Sincronización de WhatsApp (WSP Daily Sync):** Integración automatizada usando Playwright y Ollama local. Lee de forma autónoma el último mensaje de WhatsApp Web (ej. *"hice ejercicio y leí 20 páginas"*), interpreta semánticamente los hábitos diarios completados usando IA local, actualiza la base de datos de hábitos RPG en TaskForge, persiste un log diario en Obsidian y envía un reporte detallado con XP ganada directamente de vuelta al chat.
+It is designed to run on local models through Ollama, with an optional cloud fallback.
 
 ---
 
-## 🧭 ¿Cómo Decide el Orquestador?
+## ✨ Key Features
 
-El Orquestador no usa reglas fijas. Evalúa la intención del usuario con el LLM y selecciona dinámicamente qué agente (o cadena de agentes) ejecutar.
+- **Agent orchestration:** a main orchestrator evaluates the user's request and routes it to the right specialist (Memory, RAG, File, GitHub, MCP, Marketing and more). Each agent gets only the context it needs, which keeps the LLM focused.
+- **Self-programming (SkillForge Agent):** if you ask for something AI-Forge can't do yet, the SkillForge Agent writes the Python tool, validates it with the AST validator, backs up the current tools and saves the new one, with automatic rollback if anything fails.
+- **Second brain (Obsidian Agent):** reads your Obsidian vault, analyzes recent notes and generates weekly reports.
+- **Model Context Protocol (MCP Agent):** full integration with FastMCP servers running in persistent threads. It creates commits and pull requests straight from the chat and works around Windows Credential Manager lockups.
+- **Semantic memory with MemoryGate:** ChromaDB and LlamaIndex give the system long-term memory. MemoryGate classifies every conversation turn before saving it, so the database doesn't fill up with noise.
+- **4-layer security sandbox:** all LLM-generated code goes through AST validator → import allowlist → isolated process → resource limits before it runs. 67 of the 92 tests cover the sandbox alone.
+- **Local first (100% private):** built to run on local models such as `qwen2.5:14b` through Ollama. A ModelRouter with a circuit breaker can fall back to the cloud if you enable it.
+- **WhatsApp daily sync:** reads your latest WhatsApp Web message with Playwright (for example, *"worked out and read 20 pages"*), uses the local model to work out which daily habits you completed, updates the RPG-style habit tracker, writes a daily log to Obsidian and sends a report with the XP earned back to the chat.
 
-### Flujo de una petición completa
+---
+
+## 🧭 How Does the Orchestrator Decide?
+
+The orchestrator doesn't use fixed rules. It uses the LLM to understand the user's intent and picks which agent, or chain of agents, to run.
+
+### Flow of a full request
 
 ```
-Usuario escribe prompt
+User writes a prompt
         ↓
-   Orquestador (LangGraph ReAct — qwen2.5:14b vía Ollama)
-        ↓ evalúa intent con historial completo de sesión
-        ├── ¿Tarea de código/ejecución?       → Code Agent → SandboxManager (4 capas)
-        ├── ¿Memoria/contexto pasado?         → Memory Agent → ChromaDB
-        ├── ¿Búsqueda en documentos/notas?   → RAG Agent → LlamaIndex + Obsidian
-        ├── ¿Escritura en Obsidian?           → Obsidian Agent → Vault local
-        ├── ¿Operación de GitHub/CI/CD?       → MCP Agent → FastMCP Server (stdio)
-        ├── ¿Nueva habilidad solicitada?      → SkillForge Agent → dynamic_tools.py
-        ├── ¿Automatización de UI/pantalla?   → Computer Use Agent → llava + PyAutoGUI
-        ├── ¿Búsqueda web en tiempo real?     → Web Search Agent → DuckDuckGo
-        ├── ¿Leads/clientes/Upwork?          → Marketing Agent → Playwright Scraper
-        ├── ¿Email/Calendario Google?        → Email/Calendar Agent → OAuth2
-        ├── ¿Redes neuronales PyTorch?       → Neural Network Agent
-        ├── ¿Fitness/entrenamiento?          → Fitness Agent → JSON persistente
-        └── ¿Tarea compuesta?                → Cadena de agentes en secuencia
+   Orchestrator (LangGraph ReAct — qwen2.5:14b via Ollama)
+        ↓ evaluates intent with the full session history
+        ├── Code / execution task?        → Code Agent → SandboxManager (4 layers)
+        ├── Memory / past context?        → Memory Agent → ChromaDB
+        ├── Search in documents / notes?  → RAG Agent → LlamaIndex + Obsidian
+        ├── Write to Obsidian?            → Obsidian Agent → local vault
+        ├── GitHub / CI/CD operation?     → MCP Agent → FastMCP server (stdio)
+        ├── New skill requested?          → SkillForge Agent → dynamic_tools.py
+        ├── UI / screen automation?       → Computer Use Agent → llava + PyAutoGUI
+        ├── Real-time web search?         → Web Search Agent → DuckDuckGo
+        ├── Leads / clients / Upwork?     → Marketing Agent → Playwright scraper
+        ├── Google email / calendar?      → Email / Calendar Agent → OAuth2
+        ├── PyTorch neural networks?      → Neural Network Agent
+        ├── Fitness / training?           → Fitness Agent → persistent JSON
+        └── Compound task?                → chain of agents in sequence
         ↓
-   MemoryGate evalúa el turno en background (daemon thread)
-        ↓ clasifica con LLM: FACT / PREFERENCE / DECISION / EVENT / EPHEMERAL
-        ↓ si vale la pena → persiste en ChromaDB (deduplicación semántica)
+   MemoryGate evaluates the turn in the background (daemon thread)
+        ↓ classifies it with the LLM: FACT / PREFERENCE / DECISION / EVENT / EPHEMERAL
+        ↓ if it's worth keeping → saves it to ChromaDB (semantic deduplication)
         ↓
-   Resultado consolidado → WebSocket → Dashboard UI
+   Consolidated result → WebSocket → dashboard UI
 ```
 
-### Principios de enrutamiento
+### Routing principles
 
-- **Contexto limpio por agente:** Ningún sub-agente ve la conversación completa. Solo recibe un sub-prompt específico con su misión exacta.
-- **Fallback estructurado:** Si un agente falla, el Orquestador recibe un dict de error estructurado y puede reintentar, reformular, o reportar al usuario limpiamente sin colgarse.
-- **Sin ciclos:** El grafo LangGraph es acíclico. Los agentes no se llaman entre sí directamente — todo pasa por el Orquestador.
-- **ModelRouter con Circuit Breaker:** Si Ollama falla 3 veces consecutivas, el router puede escalar automáticamente a cloud (deshabilitado por defecto para privacidad).
-
----
-
-## 🦾 El Ecosistema de Agentes
-
-El Orquestador tiene a su disposición un ejército de especialistas, todos heredando de `AgentBase`:
-
-1. **Memory Agent** — Escribe y lee recuerdos semánticos en ChromaDB con deduplicación.
-2. **File Agent** — Navegación de disco, lectura y escritura de archivos en el sistema local.
-3. **Github Agent** — Creación de repos, lectura de código remoto, issues y PRs vía PyGitHub.
-4. **Obsidian Agent** — Lectura, escritura, búsqueda y notas recientes en tu vault Markdown.
-5. **Marketing Agent** — OSINT, scraping de leads en Upwork/Reddit con Playwright y sistema de scoring.
-6. **Fitness Agent** — Registro JSON persistente de PRs del gimnasio, historial de lesiones y volumen semanal.
-7. **Computer Use Agent** — Visión con `llava`, clics, teclado simulado y automatización de UI vía PyAutoGUI.
-8. **Code Agent** — Generación y ejecución de Python en sandbox de 4 capas de seguridad.
-9. **RAG Agent** — Búsqueda vectorial sobre PDFs y archivos locales + vault completo de Obsidian.
-10. **Neural Network Agent** — Diseña, codifica y entrena modelos PyTorch con métricas persistentes.
-11. **MCP Agent** — CI/CD autónomo: commits, push y PRs vía FastMCP con anti-bloqueos para Windows.
-12. **SkillForge Agent** — Escribe y persiste nuevas herramientas con backup/rollback automático.
-13. **Image Agent** — Generación de imágenes con Stable Diffusion v1.5 (diffusers local).
-14. **Voice Agent** — Transcripción de voz en tiempo real con Whisper local.
-15. **Calendar / Email Agents** — Gmail y Google Calendar con OAuth2 completo.
-16. **Brain Agent** — Analiza notas recientes de Obsidian y genera insights/newsletters semanales.
-17. **Web Search Agent** — DuckDuckGo en tiempo real con opción de guardar hallazgos en memoria.
+- **Clean context per agent:** no sub-agent sees the whole conversation. Each one gets a specific sub-prompt with its exact task.
+- **Structured fallback:** if an agent fails, the orchestrator receives a structured error and can retry, rephrase or report back to the user without hanging.
+- **No cycles:** the LangGraph graph is acyclic. Agents never call each other directly; everything goes through the orchestrator.
+- **ModelRouter with circuit breaker:** if Ollama fails 3 times in a row, the router can escalate to the cloud automatically (off by default, for privacy).
 
 ---
 
-## ⚙️ Configuración Completa del Entorno
+## 🦾 The Agent Ecosystem
 
-Copia el archivo de ejemplo y configura según tu entorno:
+The orchestrator has a team of specialists, all inheriting from `AgentBase`:
+
+1. **Memory Agent** — writes and reads semantic memories in ChromaDB, with deduplication.
+2. **File Agent** — browses the disk and reads and writes local files.
+3. **GitHub Agent** — creates repos and reads remote code, issues and PRs through PyGitHub.
+4. **Obsidian Agent** — reads, writes and searches notes in your Markdown vault.
+5. **Marketing Agent** — scrapes leads from Upwork and Reddit with Playwright and scores them.
+6. **Fitness Agent** — keeps a persistent JSON log of gym PRs, injury history and weekly volume.
+7. **Computer Use Agent** — sees the screen with `llava` and automates clicks and typing with PyAutoGUI.
+8. **Code Agent** — generates Python and runs it inside the 4-layer sandbox.
+9. **RAG Agent** — vector search over local PDFs and files plus the whole Obsidian vault.
+10. **Neural Network Agent** — designs, codes and trains PyTorch models with persistent metrics.
+11. **MCP Agent** — autonomous CI/CD: commits, pushes and PRs through FastMCP, with Windows workarounds.
+12. **SkillForge Agent** — writes and saves new tools with automatic backup and rollback.
+13. **Image Agent** — generates images with Stable Diffusion v1.5 (local diffusers).
+14. **Voice Agent** — real-time speech transcription with local Whisper.
+15. **Calendar / Email Agents** — Gmail and Google Calendar with full OAuth2.
+16. **Brain Agent** — analyzes recent Obsidian notes and generates weekly insights.
+17. **Web Search Agent** — real-time DuckDuckGo search, with the option to save findings to memory.
+
+---
+
+## ⚙️ Environment Setup
+
+Copy the example file and fill it in for your machine:
 
 ```bash
 cp .env.example .env   # Linux/macOS
 copy .env.example .env # Windows
 ```
 
-### Variables principales
+### Main variables
 
-| Variable | Requerida | Descripción | Ejemplo |
-|----------|-----------|-------------|---------|
-| `OLLAMA_MODEL` | ✅ Sí | Modelo principal de inferencia | `qwen2.5:14b` |
-| `OLLAMA_BASE_URL` | ✅ Sí | URL del servidor Ollama local | `http://localhost:11434` |
-| `LLM_PROVIDER` | ✅ Sí | Motor LLM: `local` o `cloud` | `local` |
-| `OBSIDIAN_VAULT_PATH` | ✅ Para Obsidian/Brain | Ruta absoluta a tu vault | `C:/Users/user/MyVault` |
-| `GITHUB_TOKEN` | ✅ Para MCP/GitHub | Personal Access Token | `ghp_xxxxxxxxxxxx` |
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `OLLAMA_MODEL` | ✅ Yes | Main inference model | `qwen2.5:14b` |
+| `OLLAMA_BASE_URL` | ✅ Yes | URL of the local Ollama server | `http://localhost:11434` |
+| `LLM_PROVIDER` | ✅ Yes | LLM engine: `local` or `cloud` | `local` |
+| `OBSIDIAN_VAULT_PATH` | ✅ For Obsidian / Brain | Absolute path to your vault | `C:/Users/user/MyVault` |
+| `GITHUB_TOKEN` | ✅ For MCP / GitHub | Personal access token | `ghp_xxxxxxxxxxxx` |
 
-### Variables de cloud fallback (opcionales)
+### Cloud fallback variables (optional)
 
-| Variable | Requerida | Descripción | Default |
-|----------|-----------|-------------|---------|
-| `ANTHROPIC_API_KEY` | No | Fallback a Claude si Ollama no disponible | `None` |
-| `ANTHROPIC_MODEL` | No | Modelo de Anthropic para fallback | `claude-sonnet-4-20250514` |
+| Variable | Required | Description | Default |
+|----------|----------|-------------|---------|
+| `ANTHROPIC_API_KEY` | No | Fall back to Claude when Ollama is not available | `None` |
+| `ANTHROPIC_MODEL` | No | Anthropic model used for the fallback | `claude-sonnet-4-20250514` |
 
-### Variables por agente
+### Per-agent variables
 
-| Variable | Agente | Requerida | Descripción |
-|----------|--------|-----------|-------------|
-| `GOOGLE_OAUTH_CREDENTIALS` | Calendar / Email | Solo OAuth | Ruta al JSON de Google Cloud Console |
-| `GOOGLE_OAUTH_TOKEN` | Calendar / Email | Auto-generado | Sesión OAuth (se crea en primer uso) |
-| `MEMORY_EMBED_MODEL` | Memory / RAG | No | Modelo de embeddings | 
-| `RAG_TOP_K` | RAG | No | Resultados máximos RAG | 
-| `OLLAMA_VISION_MODEL` | Computer Use | No | Modelo de visión (`llava`) |
-| `SD_MODEL_ID` | Image | No | Modelo de Stable Diffusion |
-| `IMAGE_OUTPUT_DIR` | Image | No | Carpeta de salida de imágenes |
-| `WHISPER_MODEL` | Voice | No | Tamaño del modelo Whisper (`base`) |
-| `MCP_SERVERS_CONFIG` | MCP | No | Ruta al JSON de servidores MCP |
+| Variable | Agent | Required | Description |
+|----------|-------|----------|-------------|
+| `GOOGLE_OAUTH_CREDENTIALS` | Calendar / Email | OAuth only | Path to the JSON from Google Cloud Console |
+| `GOOGLE_OAUTH_TOKEN` | Calendar / Email | Auto-generated | OAuth session (created on first use) |
+| `MEMORY_EMBED_MODEL` | Memory / RAG | No | Embedding model |
+| `RAG_TOP_K` | RAG | No | Maximum RAG results |
+| `OLLAMA_VISION_MODEL` | Computer Use | No | Vision model (`llava`) |
+| `SD_MODEL_ID` | Image | No | Stable Diffusion model |
+| `IMAGE_OUTPUT_DIR` | Image | No | Output folder for images |
+| `WHISPER_MODEL` | Voice | No | Whisper model size (`base`) |
+| `MCP_SERVERS_CONFIG` | MCP | No | Path to the MCP servers JSON (see `mcp_servers.example.json`) |
 
 ---
 
-## 🔧 Diccionario de Tools por Agente
+## 🔧 Tools by Agent
 
-Cada agente expone tools al Orquestador mediante el decorador `@tool` de LangChain. Esta tabla documenta qué puede hacer cada agente y los parámetros exactos verificados contra el código fuente.
+Each agent exposes tools to the orchestrator with LangChain's `@tool` decorator. This table lists what each agent can do and its exact parameters, checked against the source code.
 
 ### 🧠 Memory Agent (`memory_tools.py`)
-| Tool | Descripción | Parámetros |
+| Tool | Description | Parameters |
 |------|-------------|------------|
-| `memory_list_all` | Lista todos los recuerdos indexados en ChromaDB | — |
-| `memory_add_reminder` | Crea un recordatorio persistente | `text: str` |
-| `memory_add_progress` | Añade nota de progreso o log | `text: str` |
-| `memory_delete_reminder` | Elimina recordatorio por ID corto | `item_id: str` |
-| `memory_delete_progress` | Elimina entrada de progreso por ID | `item_id: str` |
-| `memory_semantic_search` | Búsqueda semántica por embeddings | `query: str, n_results: int = 8` |
-| `memory_add_embedding` | Guarda texto con embedding y etiqueta libre | `text: str, kind: str = "note"` |
-| `memory_get_context` | Recupera N recuerdos más relevantes (RAG interno) | `query: str, n: int = 6` |
+| `memory_list_all` | Lists every memory indexed in ChromaDB | — |
+| `memory_add_reminder` | Creates a persistent reminder | `text: str` |
+| `memory_add_progress` | Adds a progress note or log entry | `text: str` |
+| `memory_delete_reminder` | Deletes a reminder by short ID | `item_id: str` |
+| `memory_delete_progress` | Deletes a progress entry by ID | `item_id: str` |
+| `memory_semantic_search` | Semantic search over embeddings | `query: str, n_results: int = 8` |
+| `memory_add_embedding` | Saves text with an embedding and a free-form label | `text: str, kind: str = "note"` |
+| `memory_get_context` | Retrieves the N most relevant memories (internal RAG) | `query: str, n: int = 6` |
 
 ### 📁 File Agent (`file_tools.py`)
-| Tool | Descripción | Parámetros |
+| Tool | Description | Parameters |
 |------|-------------|------------|
-| `file_read_file` | Lee un archivo de texto con límite de tamaño | `path: str, max_bytes: int = 500000` |
-| `file_write_file` | Escribe o anexa contenido a un archivo | `path: str, content: str, append: bool = False` |
-| `file_list_directory` | Lista entradas de un directorio (no recursivo) | `path: str, max_entries: int = 200` |
-| `file_move_or_copy` | Mueve o copia archivos/directorios | `source_path: str, destination_path: str, operation: str` |
-| `file_search` | Búsqueda recursiva por nombre o contenido | `root_path: str, name_glob: str, content_substring: str` |
+| `file_read_file` | Reads a text file with a size limit | `path: str, max_bytes: int = 500000` |
+| `file_write_file` | Writes or appends content to a file | `path: str, content: str, append: bool = False` |
+| `file_list_directory` | Lists the entries of a directory (not recursive) | `path: str, max_entries: int = 200` |
+| `file_move_or_copy` | Moves or copies files and directories | `source_path: str, destination_path: str, operation: str` |
+| `file_search` | Recursive search by name or content | `root_path: str, name_glob: str, content_substring: str` |
 
 ### 💻 Code Agent (`code_tools.py`)
-| Tool | Descripción | Parámetros |
+| Tool | Description | Parameters |
 |------|-------------|------------|
-| `code_generate_and_execute` | Genera código Python y lo ejecuta en sandbox de 4 capas | `description: str` |
-| `code_handoff_to_memory_agent` | Delega en el agente de memoria para guardar resultados | `instruction: str` |
+| `code_generate_and_execute` | Generates Python code and runs it in the 4-layer sandbox | `description: str` |
+| `code_handoff_to_memory_agent` | Hands off to the Memory Agent to save results | `instruction: str` |
 
 ### 🛠️ SkillForge Agent (`skillforge_tools.py`)
-| Tool | Descripción | Parámetros |
+| Tool | Description | Parameters |
 |------|-------------|------------|
-| `skillforge_save_tool` | Valida, respalda y guarda nueva tool en `dynamic_tools.py` | `python_code: str` |
-| `skillforge_list_history` | Lista el historial de versiones de `dynamic_tools.py` | — |
-| `skillforge_rollback` | Revierte al último backup con confirmación explícita | `confirm: str` |
+| `skillforge_save_tool` | Validates, backs up and saves a new tool in `dynamic_tools.py` | `python_code: str` |
+| `skillforge_list_history` | Lists the version history of `dynamic_tools.py` | — |
+| `skillforge_rollback` | Reverts to the last backup after explicit confirmation | `confirm: str` |
 
-### 🤖 MCP Agent (tools dinámicas vía FastMCP)
-| Tool | Descripción | Parámetros |
+### 🤖 MCP Agent (dynamic tools through FastMCP)
+| Tool | Description | Parameters |
 |------|-------------|------------|
-| `aiforge_commit_push` | Commit + push al repositorio remoto (anti-bloqueos Windows) | `message: str, branch: str` |
-| `aiforge_create_pr` | Crea Pull Request en GitHub vía API | `title: str, body: str, head: str, base: str` |
-| `aiforge_get_status` | Estado actual del repositorio Git | — |
-| `aiforge_get_diff` | Diff de cambios actuales | — |
-| `aiforge_list_branches` | Lista ramas del repositorio | — |
-| `aiforge_merge_pr` | Mergea un PR existente | `pr_number: int` |
+| `aiforge_commit_push` | Commits and pushes to the remote repo (with Windows workarounds) | `message: str, branch: str` |
+| `aiforge_create_pr` | Creates a GitHub pull request through the API | `title: str, body: str, head: str, base: str` |
+| `aiforge_get_status` | Current status of the Git repo | — |
+| `aiforge_get_diff` | Diff of the current changes | — |
+| `aiforge_list_branches` | Lists the repo's branches | — |
+| `aiforge_merge_pr` | Merges an existing PR | `pr_number: int` |
 
 ### 📚 RAG Agent (`rag_tools.py`)
-| Tool | Descripción | Parámetros |
+| Tool | Description | Parameters |
 |------|-------------|------------|
-| `rag_index_documents` | Indexa PDFs/TXT/MD en `data/documents/` | — |
-| `rag_query` | Consulta RAG sobre documentos indexados | `question: str` |
-| `rag_add_document` | Crea y indexa un archivo nuevo | `filename: str, content: str` |
-| `rag_list_indexed` | Lista fragmentos indexados en Chroma | `max_rows: int = 50` |
-| `rag_index_obsidian_vault` | Indexa todo el vault de Obsidian en Chroma | — |
-| `rag_query_obsidian` | Consulta la base de conocimiento de Obsidian | `question: str` |
+| `rag_index_documents` | Indexes PDF, TXT and MD files in `data/documents/` | — |
+| `rag_query` | Runs a RAG query over the indexed documents | `question: str` |
+| `rag_add_document` | Creates and indexes a new file | `filename: str, content: str` |
+| `rag_list_indexed` | Lists the chunks indexed in Chroma | `max_rows: int = 50` |
+| `rag_index_obsidian_vault` | Indexes the whole Obsidian vault in Chroma | — |
+| `rag_query_obsidian` | Queries the Obsidian knowledge base | `question: str` |
 
 ### 📓 Obsidian Agent (`obsidian_tools.py`)
-| Tool | Descripción | Parámetros |
+| Tool | Description | Parameters |
 |------|-------------|------------|
-| `obsidian_read_note` | Lee una nota por título (`.md` opcional) | `title: str` |
-| `obsidian_write_note` | Crea o sobrescribe una nota | `title: str, content: str` |
-| `obsidian_append_note` | Añade texto al final de una nota existente | `title: str, content: str` |
-| `obsidian_search_notes` | Busca texto en todas las notas del vault | `query: str` |
-| `obsidian_get_recent_notes` | Notas modificadas en los últimos N días | `days: int = 7` |
+| `obsidian_read_note` | Reads a note by title (`.md` optional) | `title: str` |
+| `obsidian_write_note` | Creates or overwrites a note | `title: str, content: str` |
+| `obsidian_append_note` | Appends text to the end of an existing note | `title: str, content: str` |
+| `obsidian_search_notes` | Searches text across every note in the vault | `query: str` |
+| `obsidian_get_recent_notes` | Notes modified in the last N days | `days: int = 7` |
 
 ### 🌐 Web Search Agent (`web_search_tools.py`)
-| Tool | Descripción | Parámetros |
+| Tool | Description | Parameters |
 |------|-------------|------------|
-| `web_search_duckduckgo` | Búsqueda en internet en tiempo real | `query: str` |
-| `web_search_save_findings_to_memory` | Delega hallazgos al Memory Agent | `instruction: str` |
+| `web_search_duckduckgo` | Real-time internet search | `query: str` |
+| `web_search_save_findings_to_memory` | Hands findings off to the Memory Agent | `instruction: str` |
 
 ---
 
-## 🌅 Morning Briefing Inteligente & Telegram Bot
+## 🌅 Morning Briefing & Telegram Bot
 
-AI-Forge incluye un sistema autónomo que actúa como tu "segundo cerebro", generando un reporte matutino cada vez que inicias sesión y un asistente conversacional 24/7 vía Telegram.
+AI-Forge includes an autonomous "second brain" that writes a morning report every time you log in, plus a 24/7 conversational assistant on Telegram.
 
-### 🔄 Morning Briefing (Arranque Automático)
-Espera que Ollama + ChromaDB estén libres (máx. 60s)
+### 🔄 Morning briefing (runs at startup)
+
+```
+Waits until Ollama + ChromaDB are free (60 s max)
       │
       ▼
-[Paso 0] goal_tracker.py
-      │  ← Lee mensajes de Telegram de las últimas 24h
-      │  ← Analiza avances en metas con Qwen local
-      │  ← Actualiza progress_log y status en data/taskforge/tasks.json
-      │  ← Envía reporte de metas actualizadas a Telegram (si hubo cambios)
+[Step 0] goal_tracker.py
+      │  ← reads Telegram messages from the last 24 h
+      │  ← analyzes progress on your goals with local Qwen
+      │  ← updates progress_log and status in data/taskforge/tasks.json
+      │  ← sends the updated goals to Telegram (if anything changed)
       │
       ▼
 MorningBriefingAgent (LangGraph ReAct)
       │
-      ├── 📝 Lee tu Daily Note en Obsidian
-      ├── 🎯 Lee tus metas activas actualizadas de TaskForge
-      ├── ⏳ Escanea tareas pendientes de los últimos 3 días
-      ├── 🌦️ Consulta el clima en Bogotá (OpenWeatherMap)
-      ├── 📰 Descarga titulares de HuggingFace, TechCrunch, Papers with Code
-      ├── 📅 Revisa eventos de Google Calendar (si está configurado)
-      ├── 📧 Filtra correos críticos de Gmail (si está configurado)
-      └── 🛡️ Verifica que Ollama, ChromaDB y MCP estén corriendo
+      ├── 📝 Reads your Obsidian daily note
+      ├── 🎯 Reads your active goals from TaskForge
+      ├── ⏳ Scans pending tasks from the last 3 days
+      ├── 🌦️ Checks the weather (OpenWeatherMap)
+      ├── 📰 Pulls headlines from Hugging Face, TechCrunch and Papers with Code
+      ├── 📅 Reviews Google Calendar events (if configured)
+      ├── 📧 Filters critical Gmail messages (if configured)
+      └── 🛡️ Checks that Ollama, ChromaDB and MCP are running
       │
       ▼
-Genera el Briefing en Markdown
+Writes the briefing in Markdown
       │
-      ├──→ 💾 Guarda en Obsidian: Daily Notes/YYYY-MM-DD-briefing.md
-      ├──→ 🌐 Disponible en: http://localhost:8765
-      └──→ 📱 Envía resumen compacto a Telegram
+      ├──→ 💾 Saves it to Obsidian: Daily Notes/YYYY-MM-DD-briefing.md
+      ├──→ 🌐 Serves it at http://localhost:8765
+      └──→ 📱 Sends a short summary to Telegram
+```
 
-### **¿El bot de Telegram lee todos mis mensajes? ¿Cómo funciona?**
-> Sí y no. El script `telegram_bot_listener.py` corre en tu PC y se conecta a la API de Telegram. Recibe todos los mensajes que le envías directamente al bot. 
-> 
-> Está programado para dos cosas:
-> 1. **Comandos explícitos:** Si escribes exactamente `/daily` o `/briefing`, genera el briefing de inmediato.
-> 2. **Conversación:** Si escribes cualquier otra cosa, reenvía el mensaje al orquestador de LangGraph local para que Qwen te responda de forma conversacional y use sus herramientas en tu PC.
-> 
-> Adicionalmente, el sistema de **Morning Briefing** revisa todo el historial de chats de las últimas 24 horas antes de ejecutarse por la mañana (usando el módulo `goal_tracker.py`). Analiza con Qwen local si le contaste sobre algún avance en tus metas del día anterior (por ejemplo: *"estudié inglés 2 horas"* o *"mandé 3 propuestas en Upwork"*) y actualiza automáticamente tu base de datos de tareas y XP en `tasks.json`.
+### Does the Telegram bot read all my messages?
+
+> Yes and no. `scripts/telegram_bot_listener.py` runs on your PC and connects to the Telegram API. It receives every message you send directly to the bot, and it does two things with them:
+>
+> 1. **Explicit commands:** if you type exactly `/daily` or `/briefing`, it generates the briefing right away.
+> 2. **Conversation:** anything else goes to the local LangGraph orchestrator, so Qwen answers you and can use its tools on your PC.
+>
+> Before the morning briefing runs, `goal_tracker.py` also reviews the last 24 hours of chat. It uses local Qwen to spot progress on the previous day's goals (for example, *"studied English for 2 hours"* or *"sent 3 proposals on Upwork"*) and updates your tasks and XP in `tasks.json`.
 
 ---
 
-## 📱 Sincronización Diaria de WhatsApp (WSP Daily Sync)
+## 📱 WhatsApp Daily Sync
 
-Permite registrar tus hábitos y tareas diarias enviando un simple mensaje por WhatsApp (ej: *"hice ejercicio y leí 20 páginas"*). La IA procesa y mapea la entrada a tus hábitos estructurados de TaskForge en local.
+Log your daily habits and tasks by sending a plain WhatsApp message (for example, *"worked out and read 20 pages"*). The local AI maps it to your structured TaskForge habits.
 
-### 🔄 Flujo de Ejecución
+### 🔄 How it runs
 
-1. **Lectura (Playwright):** Inicia una sesión de navegador persistente (reusando tu sesión de Chrome activa), abre el chat de WhatsApp con tu número registrado y extrae el último mensaje recibido.
-2. **Análisis (Ollama Local):** Tu modelo local (ej: `qwen2.5:14b`) interpreta semánticamente el mensaje natural para mapearlo contra los hábitos del sistema.
-3. **Actualización (TaskForge RPG):** Registra los hábitos completados, acumula XP y sube niveles si corresponde en la base de datos del juego.
-4. **Registro (Obsidian Vault):** Guarda una nota estructurada con el balance y progreso en tu diario/vault.
-5. **Reporte (WhatsApp):** Envía un reporte formal interactivo con los hábitos completados y el estado actual de tu personaje RPG de vuelta al chat de WhatsApp.
+1. **Read (Playwright):** opens a persistent browser session (reusing your logged-in Chrome), opens the WhatsApp chat and extracts the latest message.
+2. **Understand (local Ollama):** your local model (for example `qwen2.5:14b`) interprets the message and maps it to the system's habits.
+3. **Update (TaskForge RPG):** records the completed habits, adds XP and levels up your character when it applies.
+4. **Log (Obsidian vault):** saves a structured note with the day's summary.
+5. **Report (WhatsApp):** sends a report with the completed habits and your character's current status back to the chat.
 
-### 💻 Comandos de Uso y Pruebas
+### 💻 Commands
 
-- **Simular análisis (Dry-run / CLI):**
-  Prueba la interpretación semántica y registro directo en base de datos sin necesidad de abrir WhatsApp:
+- **Dry run (CLI):** test the interpretation and the database update without opening WhatsApp:
   ```bash
-  python agents/wsp_daily_sync.py --messages "Hice ejercicio y leí 20 páginas"
+  python agents/wsp_daily_sync.py --messages "Worked out and read 20 pages"
   ```
 
-- **Ejecución Completa (WhatsApp + Playwright):**
-  Abre la ventana del navegador (reutilizando la sesión de WhatsApp Web iniciada previamente) para leer tu último mensaje y enviar el reporte de vuelta:
-  ```bash
-  python pruebas/sync_y_enviar_playwright.py
-  ```
-
-- **Programar ejecución automática (Cron / Windows Task Scheduler):**
-  Instala un script programador en segundo plano para sincronizar todos los días automáticamente:
+- **Schedule it (Windows Task Scheduler):** installs a scheduled task that syncs automatically every night:
   ```bash
   python scripts/setup_wsp_cron.py --install
   ```
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 🛠️ Tech Stack
 
-| Categoría | Tecnología |
-|-----------|-----------|
-| Core ReAct | Python 3.10+, LangGraph, LangChain |
-| Motor LLM Local | Ollama (`qwen2.5:14b`, `llava`) |
-| Motor LLM Cloud | Anthropic Claude (fallback opcional) |
-| Vector Database | ChromaDB (persistente, singleton) |
-| RAG Engine | LlamaIndex + HuggingFace Embeddings |
-| Protocolo Extendido | FastMCP (Model Context Protocol) |
+| Category | Technology |
+|----------|-----------|
+| ReAct core | Python 3.10+, LangGraph, LangChain |
+| Local LLM engine | Ollama (`qwen2.5:14b`, `llava`) |
+| Cloud LLM engine | Anthropic Claude (optional fallback) |
+| Vector database | ChromaDB (persistent, singleton) |
+| RAG engine | LlamaIndex + Hugging Face embeddings |
+| Extended protocol | FastMCP (Model Context Protocol) |
 | Dashboard UI | FastAPI + WebSockets |
-| Automatización UI | PyAutoGUI + Playwright |
-| Seguridad de Código | SandboxManager (AST + Allowlist + ProcessRunner + ResourceGovernor) |
+| UI automation | PyAutoGUI + Playwright |
+| Code security | SandboxManager (AST + allowlist + ProcessRunner + ResourceGovernor) |
 | CI/CD | GitHub Actions + GitHub API |
-| Persistencia Extra | JSON (Fitness, Leads), ChromaDB (Memory, RAG) |
+| Extra persistence | JSON (fitness, leads), ChromaDB (memory, RAG) |
 
 ---
 
-## 🚀 Instalación y Despliegue
+## 🚀 Installation
 
-### Requisitos Previos
+### Prerequisites
 - Python 3.10+
-- [Ollama](https://ollama.com/) instalado y corriendo.
+- [Ollama](https://ollama.com/) installed and running
 
-### Pasos
+### Steps
 
 ```bash
-# 1. Clonar el repositorio
+# 1. Clone the repository
 git clone https://github.com/Javier-Alturo/ai-forge.git
 cd ai-forge
 
-# 2. Entorno virtual
+# 2. Virtual environment
 python -m venv .venv
-# En Windows:
+# Windows:
 .venv\Scripts\activate
-# En Linux/macOS:
+# Linux/macOS:
 source .venv/bin/activate
 
-# 3. Dependencias
+# 3. Dependencies
 pip install -r requirements.txt
 
-# 4. Descargar los motores de inferencia local
+# 4. Download the local models
 ollama pull qwen2.5:14b
 ollama pull llava
 
-# 5. Configurar entorno
+# 5. Configure the environment
 cp .env.example .env
-# Edita .env con tus rutas y tokens
+# Edit .env with your paths and tokens
 ```
 
 ---
 
-## 💻 Uso
+## 💻 Usage
 
-Para levantar el Dashboard visual interactivo:
+Start the interactive dashboard:
 
 ```bash
-python dashboard.py
+python dashboard/app.py
 ```
 
-Abre tu navegador en `http://localhost:8000`.
+Then open `http://localhost:8000` in your browser.
 
-*Ejemplos de Prompts:*
-- *"Orquestador, usa al agente de Marketing para analizar perfiles de Upwork y genera una propuesta."*
-- *"SkillForge, prográmate una herramienta para darme el clima y guárdala."*
-- *"Orquestador, usa el MCP Agent para hacer un commit de mis cambios de hoy y sube un Pull Request a main."*
-- *"Haz un resumen semanal de mi entrenamiento y notas de Obsidian."*
-- *"Busca en mi vault de Obsidian todo lo que escribí sobre arquitectura de agentes."*
+Or use the command line:
+
+```bash
+python main.py
+python main.py "search for news about Python 3.13"
+```
+
+*Example prompts:*
+- *"Orchestrator, use the Marketing agent to analyze Upwork profiles and write a proposal."*
+- *"SkillForge, write yourself a tool that tells me the weather and save it."*
+- *"Orchestrator, use the MCP Agent to commit today's changes and open a pull request to main."*
+- *"Write a weekly summary of my training and my Obsidian notes."*
+- *"Search my Obsidian vault for everything I wrote about agent architecture."*
 
 ---
 
-## 📂 Arquitectura Interna
+## 📂 Project Structure
 
 ```text
 ai-forge/
-├── agents/                       # Nodos del LangGraph
-│   ├── agent_base.py             # Clase abstracta principal (AgentBase)
-│   ├── orchestrator.py           # Enrutador inteligente + MemoryGate + ModelRouter
-│   ├── mcp_agent.py              # Sub-Agente Model Context Protocol
-│   ├── skillforge_agent.py       # Módulo de Auto-programación
-│   ├── dynamic_tools.py          # Tools autogeneradas por SkillForge (activas)
-│   ├── wsp_daily_sync.py         # Motor de sincronización de hábitos vía WhatsApp
-│   ├── morning_briefing_agent.py # Generación automática de resumen diario (Obsidian, Calendar, Clima, RSS)
-│   ├── morning_briefing_tools.py # Herramientas de extracción para el Morning Briefing
+├── main.py                       # Command-line entry point
+├── agents/                       # LangGraph nodes
+│   ├── agent_base.py             # Main abstract class (AgentBase)
+│   ├── orchestrator.py           # Router + MemoryGate + ModelRouter
+│   ├── mcp_agent.py              # Model Context Protocol sub-agent
+│   ├── skillforge_agent.py       # Self-programming module
+│   ├── dynamic_tools.py          # Tools generated by SkillForge (active)
+│   ├── wsp_daily_sync.py         # WhatsApp habit sync engine
+│   ├── morning_briefing_agent.py # Daily summary (Obsidian, Calendar, weather, RSS)
+│   ├── morning_briefing_tools.py # Data-gathering tools for the briefing
 │   └── memory/
-│       ├── memory_gate.py        # Clasificador LLM de relevancia de memoria
-│       └── memory_schemas.py     # Tipos: FACT/PREFERENCE/DECISION/EVENT/EPHEMERAL
+│       ├── memory_gate.py        # LLM classifier for memory relevance
+│       └── memory_schemas.py     # Types: FACT/PREFERENCE/DECISION/EVENT/EPHEMERAL
 ├── core/
-│   ├── model_router.py           # Circuit Breaker Local→Cloud
+│   ├── model_router.py           # Local → cloud circuit breaker
 │   └── sandbox/
-│       ├── sandbox_manager.py    # Punto de entrada único para código LLM
-│       ├── ast_validator.py      # CAPA 1: Análisis AST
-│       ├── import_allowlist.py   # CAPA 2: Whitelist de módulos
-│       ├── process_runner.py     # CAPA 3: Proceso aislado (CWD + env limpio)
-│       └── resource_governor.py  # CAPA 4: CPU/RAM/tiempo
+│       ├── sandbox_manager.py    # Single entry point for LLM code
+│       ├── ast_validator.py      # LAYER 1: AST analysis
+│       ├── import_allowlist.py   # LAYER 2: module allowlist
+│       ├── process_runner.py     # LAYER 3: isolated process (locked CWD + clean env)
+│       └── resource_governor.py  # LAYER 4: CPU / RAM / time limits
+├── dashboard/
+│   └── app.py                    # FastAPI + WebSocket dashboard (port 8000)
 ├── docs/
-│   ├── architecture.md           # Mapa de puertos y servicios
+│   ├── architecture.md           # Map of ports and services
 │   └── failure_modes/
-│       ├── code_agent.md         # Matriz de fallos del Code Agent
-│       └── skillforge_agent.md   # Sistema de backup/rollback
+│       ├── code_agent.md         # Code Agent failure matrix
+│       └── skillforge_agent.md   # Backup / rollback system
 ├── tests/
 │   ├── sandbox/
-│   │   └── test_ast_validator.py # 46 tests de seguridad (4 grupos)
-│   └── test_sandbox.py           # 21 tests de integración
+│   │   └── test_ast_validator.py # 46 security tests (4 groups)
+│   └── test_sandbox.py           # 21 integration tests
 ├── data/
-│   ├── documents/                # PDFs/TXT para RAG
-│   ├── chromadb/                 # Base de datos vectorial persistente
-│   └── sandbox_workspace/        # Workspace aislado de ejecución (excluido de git)
+│   ├── documents/                # PDFs / TXT for RAG
+│   ├── chromadb/                 # Persistent vector database
+│   └── sandbox_workspace/        # Isolated execution workspace (not in git)
 ├── scripts/
-│   ├── goal_tracker.py           # Lee mensajes del bot, analiza avance de metas con Qwen y actualiza tasks.json
-│   ├── morning_briefing.py       # Orquestador principal del briefing
-│   ├── mcp_aiforge_server.py     # Servidor FastMCP aislado (stdio)
-│   ├── morning_briefing_dashboard.py # Dashboard web en puerto 8765
-│   ├── setup_morning_briefing.py # Autoconfiguración y registro en Task Scheduler
-│   ├── telegram_bot_listener.py  # Bot de Telegram (escucha comandos y conversaciones)
-│   ├── register_tasks_admin.ps1  # Registra las tareas en Windows (requiere Admin)
-│   └── startup_briefing.bat      # Wrapper de arranque para Windows
-├── pruebas/                      # Scripts de validación y testeo
-│   └── sync_y_enviar_playwright.py # Orquestador Playwright para WhatsApp Web
-├── knowledge/                    # Documentación interna del proyecto
-├── agents_config.json            # Config centralizada (timeouts, sandbox, model_router)
-├── mcp_servers.json              # Registro de servidores MCP
-└── .env.example                  # Plantilla de variables de entorno
+│   ├── goal_tracker.py           # Reads bot messages, tracks goal progress with Qwen, updates tasks.json
+│   ├── morning_briefing.py       # Main briefing runner
+│   ├── mcp_aiforge_server.py     # Isolated FastMCP server (stdio)
+│   ├── morning_briefing_dashboard.py # Briefing web page on port 8765
+│   ├── setup_morning_briefing.py # Setup and Task Scheduler registration
+│   ├── telegram_bot_listener.py  # Telegram bot (commands and conversation)
+│   ├── register_tasks_admin.ps1  # Registers the Windows tasks (needs admin)
+│   └── startup_briefing.bat      # Windows startup wrapper
+├── knowledge/prs/                # PR summaries written by a GitHub Action
+├── agents_config.json            # Central config (timeouts, sandbox, model_router)
+├── mcp_servers.example.json      # MCP servers template
+└── .env.example                  # Environment variables template
 ```
 
 ---
 
-## 🤝 Cómo Agregar un Nuevo Agente
+## 🤝 How to Add a New Agent
 
-La arquitectura A2A hace que agregar un agente sea predecible. Sigue estos 4 pasos:
+The agent architecture makes adding one predictable. Follow these 4 steps:
 
-### Paso 1: Crear las tools del agente
+### Step 1: Create the agent's tools
 
 ```python
-# agents/mi_agente_tools.py
+# agents/my_agent_tools.py
 from langchain_core.tools import tool
 
 @tool
-def mi_tool_principal(parametro: str) -> str:
+def my_main_tool(parameter: str) -> str:
     """
-    Descripción clara de qué hace esta tool.
-    El LLM del Orquestador usa esta docstring para decidir cuándo llamarla.
+    Clear description of what this tool does.
+    The orchestrator's LLM reads this docstring to decide when to call it.
     """
-    return f"Resultado para: {parametro}"
+    return f"Result for: {parameter}"
 
-def get_mi_agente_tools():
-    return [mi_tool_principal]
+def get_my_agent_tools():
+    return [my_main_tool]
 ```
 
-### Paso 2: Crear el agente
+### Step 2: Create the agent
 
 ```python
-# agents/mi_agente_agent.py
-from langchain_ollama import ChatOllama
-from langchain_core.messages import HumanMessage, SystemMessage
-from agents.mi_agente_tools import get_mi_agente_tools
+# agents/my_agent_agent.py
+from agents.my_agent_tools import get_my_agent_tools
 
-def get_mi_agente():
+def get_my_agent():
     from langgraph.prebuilt import create_react_agent
     from agents.llm import get_llm
-    return create_react_agent(get_llm(), tools=get_mi_agente_tools())
+    return create_react_agent(get_llm(), tools=get_my_agent_tools())
 ```
 
-### Paso 3: Registrar en el Orquestador
+### Step 3: Register it in the orchestrator
 
 ```python
-# agents/orchestrator.py — agregar en build_orchestrator_tools()
+# agents/orchestrator.py — add inside build_orchestrator_tools()
 @tool
-def orchestrator_consult_mi_agente(task: str) -> str:
-    """Delega en mi nuevo agente especialista."""
-    from agents.mi_agente_agent import get_mi_agente
-    return _invoke_subagent("mi_agente", get_mi_agente, task)
+def orchestrator_consult_my_agent(task: str) -> str:
+    """Delegates to my new specialist agent."""
+    from agents.my_agent_agent import get_my_agent
+    return _invoke_subagent("my_agent", get_my_agent, task)
 ```
 
-Y añadir en `agents_config.json`:
+And add it to `agents_config.json`:
 ```json
-"mi_agente": { "enabled": true, "timeout_soft_s": 30, "timeout_hard_s": 90 }
+"my_agent": { "enabled": true, "timeout_soft_s": 30, "timeout_hard_s": 90 }
 ```
 
-### Paso 4: Tests y PR
+### Step 4: Tests and PR
 
 ```bash
 python -m pytest tests/ -v
-git checkout -b feat/mi-agente
-git add agents/mi_agente_tools.py agents/mi_agente_agent.py agents/orchestrator.py
-git commit -m "feat: Mi Nuevo Agente"
-git push origin feat/mi-agente
+git checkout -b feat/my-agent
+git add agents/my_agent_tools.py agents/my_agent_agent.py agents/orchestrator.py
+git commit -m "feat: add my new agent"
+git push origin feat/my-agent
 ```
 
-### Reglas del AgentBase
+### AgentBase rules
 
-| Método | Estado | Descripción |
+| Method | Status | Description |
 |--------|--------|-------------|
-| `invoke()` | 🔒 No tocar | Punto de entrada estandarizado con timing y trace_id |
-| `_run()` | ✅ Implementar | Lógica principal del agente |
-| `name` | ✅ Implementar | Propiedad abstracta — identificador del agente |
+| `invoke()` | 🔒 Don't touch | Standard entry point with timing and trace_id |
+| `_run()` | ✅ Implement | The agent's main logic |
+| `name` | ✅ Implement | Abstract property — the agent's identifier |
 
 ---
 
 ## 🗺️ Roadmap
 
-### ✅ Completado
-- Orquestador principal con LangGraph ReAct y 17 agentes especializados
-- Sistema de auto-programación (SkillForge) con backup/rollback automático y validación AST
-- Memoria semántica persistente con ChromaDB y MemoryGate (clasificación LLM)
-- Integración MCP con GitHub CI/CD (anti-bloqueos Windows)
-- Dashboard WebSocket en tiempo real con logs A2A
-- SandboxManager con 4 capas de seguridad (67 tests: 46 + 21)
-- ModelRouter con Circuit Breaker para fallback Local→Cloud
-- Documentación técnica completa (`docs/architecture.md`, `docs/failure_modes/`)
-- RAG sobre vault completo de Obsidian
-- Sincronización diaria de hábitos y gamificación RPG vía WhatsApp (WSP Daily Sync) con Playwright y Ollama local (Qwen 2.5 14b)
-- Morning Briefing Agent con integración de Obsidian, Google Calendar, OpenWeather, Gmail y feeds RSS (Telegram support)
+### ✅ Done
+- Main orchestrator with LangGraph ReAct and 17 specialist agents
+- Self-programming system (SkillForge) with automatic backup/rollback and AST validation
+- Persistent semantic memory with ChromaDB and MemoryGate (LLM classification)
+- MCP integration with GitHub CI/CD (Windows workarounds)
+- Real-time WebSocket dashboard with agent logs
+- SandboxManager with 4 security layers (67 tests: 46 + 21)
+- ModelRouter with a circuit breaker for local → cloud fallback
+- Technical documentation (`docs/architecture.md`, `docs/failure_modes/`)
+- RAG over the whole Obsidian vault
+- Daily habit sync and RPG gamification through WhatsApp, with Playwright and local Ollama (Qwen 2.5 14B)
+- Morning Briefing Agent with Obsidian, Google Calendar, OpenWeather, Gmail and RSS feeds (plus Telegram)
 
-### 🔄 En progreso
-- Integración de ModelRouter en todos los AgentBase (actualmente en Orquestador)
-- Panel de métricas del MemoryGate en el Dashboard
-- Tests de integración end-to-end del Orquestador completo
+### 🔄 In progress
+- ModelRouter in every AgentBase (today it's only in the orchestrator)
+- MemoryGate metrics panel in the dashboard
+- End-to-end integration tests for the full orchestrator
 
-### 📋 Planeado
-- API REST pública para integración con sistemas externos
-- Panel de administración de agentes (habilitar/deshabilitar sin reiniciar)
-- Soporte multi-vault de Obsidian
-- Modo Swarm: sub-agentes del Marketing Agent (Copywriter, Scraper, SEO)
-- WSL migration para resolver bloqueos de subprocess en Windows definitivamente
-- SkillForge UI: visualizador de herramientas generadas dinámicamente
+### 📋 Planned
+- Public REST API for external systems
+- Agent admin panel (enable or disable agents without restarting)
+- Support for several Obsidian vaults
+- Swarm mode: Marketing Agent sub-agents (copywriter, scraper, SEO)
+- Move to WSL to fix subprocess lockups on Windows for good
+- SkillForge UI: a viewer for dynamically generated tools
 
 ---
 
-## 📄 Licencia
+## 📄 License
 
-Este proyecto es Open Source bajo la Licencia MIT.
+Open source under the MIT License.
