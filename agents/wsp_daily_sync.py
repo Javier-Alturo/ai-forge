@@ -186,7 +186,7 @@ MENSAJES DE HOY ({_today()}):
 
 TAREA:
 Analiza los mensajes y determina cuáles hábitos fueron completados hoy.
-Busca menciones directas o indirectas (ej: "hice ejercicio" → "Entreno o actividad física 30 min", 
+Busca menciones directas o indirectas (ej: "ya ordené el escritorio" → "Ordenar el espacio de trabajo", 
 "leí un rato" → "Leer 20 páginas", "medité" → "Meditar 10 min", etc.)
 
 Responde ÚNICAMENTE con un JSON válido en este formato exacto:
