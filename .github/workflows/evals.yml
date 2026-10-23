@@ -1,0 +1,91 @@
+name: Evals (manual)
+
+# Run the eval suites against a real model, on demand.
+# GitHub runners have no GPU and no Ollama, so this starts Ollama as a service container and
+# pulls a SMALL model (default qwen2.5:1.5b). Numbers are lower than with the local 14B model:
+# use this run to catch regressions in the pipeline/prompts, and the local run for headline numbers.
+# Only generic datasets are used — evals/private/ is git-ignored and never reaches CI.
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Suite to run"
+        type: choice
+        options: [all, routing, memory_gate, rag]
+        default: all
+      model:
+        description: "Ollama model (small models fit the free runner: qwen2.5:1.5b, qwen2.5:3b)"
+        type: string
+        default: qwen2.5:1.5b
+      limit:
+        description: "Max items per suite (empty = all)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      ollama:
+        image: ollama/ollama:0.40.1
+        ports:
+          - 11434:11434
+    env:
+      OLLAMA_BASE_URL: http://localhost:11434
+      LLM_PROVIDER: local
+      # Inputs are passed as env vars (never interpolated into scripts) to avoid shell injection.
+      SUITE: ${{ inputs.suite }}
+      MODEL: ${{ inputs.model }}
+      LIMIT: ${{ inputs.limit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements-ci.txt
+            requirements-evals.txt
+
+      - name: Validate inputs
+        run: |
+          [[ "$MODEL" =~ ^[A-Za-z0-9._:/-]+$ ]] || { echo "invalid model name"; exit 1; }
+          [[ -z "$LIMIT" || "$LIMIT" =~ ^[0-9]+$ ]] || { echo "limit must be a number"; exit 1; }
+
+      - name: Install dependencies
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-ci.txt -r requirements-evals.txt
+
+      - name: Pull model into the Ollama service
+        run: |
+          for i in $(seq 1 30); do curl -sf http://localhost:11434/api/tags >/dev/null && break; sleep 2; done
+          curl -sf http://localhost:11434/api/pull -d "{\"model\": \"$MODEL\", \"stream\": false}"
+          curl -sf http://localhost:11434/api/tags
+
+      - name: Run evals
+        run: |
+          mkdir -p evals/results
+          args=(--suite "$SUITE" --model "$MODEL" --out evals/results/ci-evals.json)
+          [[ -n "$LIMIT" ]] && args+=(--limit "$LIMIT")
+          python -m evals.run "${args[@]}" 2>&1 | tee evals/results/ci-evals.txt
+          {
+            echo "## Evals — \`$MODEL\` (suite: $SUITE)"
+            echo '```'
+            grep -vE '^\s+[a-z_]+: [0-9]+/[0-9]+' evals/results/ci-evals.txt | grep -v '^\[A2A' | tail -150
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: eval-results-${{ github.run_id }}
+          path: evals/results/
+          retention-days: 30
