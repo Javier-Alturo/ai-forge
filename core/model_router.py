@@ -5,16 +5,22 @@ REGLA: Siempre local primero. Cloud solo si:
   1. El circuit breaker está abierto (demasiados fallos consecutivos del modelo local), o
   2. El prompt es demasiado largo para el contexto local.
 
-El cloud fallback está DESHABILITADO por defecto (allow_cloud_fallback=False).
-Para habilitarlo, configurar en agents_config.json.
+El cloud fallback está DESHABILITADO por defecto. Para habilitarlo hacen falta DOS cosas:
+  - agents_config.json → model_router.allow_cloud_fallback: true, y
+  - la variable de entorno AIFORGE_ALLOW_CLOUD=1 (ver core/cloud_policy.py).
 """
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, Tuple
+
+from core.cloud_policy import CLOUD_ENV_VAR, cloud_allowed
+
+logger = logging.getLogger(__name__)
 
 
 class FallbackReason(Enum):
@@ -52,7 +58,10 @@ class ModelRouter:
         self.cloud_model_name: Optional[str] = config.get("cloud_model")
         self.local_timeout: int = config.get("timeout_seconds", 45)
         self.max_local_tokens: int = config.get("max_local_context", 8192)
-        self.allow_cloud: bool = config.get("allow_cloud_fallback", False)
+        config_allows = bool(config.get("allow_cloud_fallback", False))
+        self.allow_cloud: bool = config_allows and cloud_allowed()
+        if config_allows and not self.allow_cloud:
+            logger.warning("allow_cloud_fallback=true ignorado: falta %s=1 en el entorno.", CLOUD_ENV_VAR)
         self.cb = CircuitBreakerState(
             FAILURE_THRESHOLD=config.get("cb_failure_threshold", 3),
             RECOVERY_TIMEOUT=config.get("cb_recovery_timeout_seconds", 60.0),
@@ -79,7 +88,8 @@ class ModelRouter:
                 raise RuntimeError(
                     f"Modelo local no disponible y cloud_fallback está DESHABILITADO. "
                     f"Razón: {self._get_fallback_reason(prompt_token_count)}. "
-                    f"Para habilitar: agents_config.json → model_router.allow_cloud_fallback: true"
+                    f"Para habilitar: agents_config.json → model_router.allow_cloud_fallback: true "
+                    f"y {CLOUD_ENV_VAR}=1 en el entorno"
                 )
             if not self.cloud_model_name:
                 raise RuntimeError(
@@ -134,6 +144,7 @@ class ModelRouter:
 
     def _get_local_model(self):
         import os
+
         from langchain_ollama import ChatOllama
         base_url = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
         return ChatOllama(
@@ -143,6 +154,9 @@ class ModelRouter:
         )
 
     def _get_cloud_model(self):
+        from core.cloud_policy import require_cloud_allowed
+
+        require_cloud_allowed("model_router fallback")
         try:
             from langchain_anthropic import ChatAnthropic
             return ChatAnthropic(model=self.cloud_model_name)  # type: ignore[arg-type]

@@ -30,10 +30,14 @@ def get_llm(temperature: float = 0.15) -> BaseChatModel:
     """
     Devuelve el chat model según LLM_PROVIDER:
     - local (default): ChatOllama
-    - cloud: ChatAnthropic (requiere ANTHROPIC_API_KEY)
+    - cloud: ChatAnthropic (requiere ANTHROPIC_API_KEY y AIFORGE_ALLOW_CLOUD=1)
     """
     if LLM_PROVIDER == "cloud":
         from langchain_anthropic import ChatAnthropic
+
+        from core.cloud_policy import require_cloud_allowed
+
+        require_cloud_allowed("LLM_PROVIDER=cloud")
 
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
