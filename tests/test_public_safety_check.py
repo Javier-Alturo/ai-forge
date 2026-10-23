@@ -116,6 +116,22 @@ def test_script_itself_passes_its_own_generic_patterns():
     assert psc.scan_text(source, "script", None, "public_safety_check.py") == []
 
 
+@pytest.mark.parametrize("user", ["<usuario>", "usuario", "user", "YourName"])
+def test_placeholder_user_paths_are_allowed(repo, user):
+    _commit(repo, "docs.md", "vault = " + "C:" + "/Users/" + user + "/MyVault\n")
+    assert _run(repo) == 0
+
+
+def test_allow_line_in_terms_file_permits_exact_text(repo, capsys):
+    terms = Path(_git(repo, "rev-parse", "--absolute-git-dir").strip()) / "public_safety_terms.txt"
+    terms.write_text("Acme Client\n!github.com/acme client/demo\n", encoding="utf-8")
+    _commit(repo, "README.md", "git clone https://github.com/acme client/demo\n")
+    assert _run(repo) == 0
+    _commit(repo, "other.md", "Acme Client roadmap\n")
+    assert _run(repo) == 1
+    assert "personal term" in capsys.readouterr().err
+
+
 def test_missing_terms_file_still_runs_generic_checks(repo, capsys):
     (Path(_git(repo, "rev-parse", "--absolute-git-dir").strip()) / "public_safety_terms.txt").unlink()
     _commit(repo, "d.txt", f"{FAKE_PHONE}\n")

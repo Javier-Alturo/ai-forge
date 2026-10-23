@@ -7,7 +7,8 @@ next is still caught. Exits 1 on any finding.
 Generic patterns live here. Personal terms (your name, family, clients, habit names)
 live OUTSIDE the repo, in <git-dir>/public_safety_terms.txt (one term per line,
 '#' comments allowed), so this file never contains them. Name-like terms are allowed
-in LICENSE only.
+in LICENSE only. A line starting with '!' is an allowed exact text (e.g. your public
+repo URL) that is ignored before matching.
 
     python scripts/public_safety_check.py                  # scan tracked files
     python scripts/public_safety_check.py --range main..HEAD
@@ -40,7 +41,9 @@ ALLOWED_EMPTY_JSON = "[]"
 PATTERNS: dict[str, re.Pattern] = {
     "phone number": re.compile(r"(?<![\w.])(?:\+?57[ -]?)?3\d{2}[ -]?\d{3}[ -]?\d{4}(?![\w])"),
     "personal email": re.compile(r"[\w.+-]+@(?:gmail|hotmail|outlook|live|yahoo|icloud|protonmail)\.[a-z.]+", re.I),
-    "local user path": re.compile(r"[A-Za-z]:[\\/]+Users[\\/]+(?!<)[\w.-]+", re.I),
+    "local user path": re.compile(
+        r"[A-Za-z]:[\\/]+Users[\\/]+(?!<|(?:user|usuario|username|yourname|you|name|me)\b)[\w.-]+", re.I
+    ),
     "OpenAI/Anthropic key": re.compile(r"\bsk-(?:ant-|proj-|lf-)?[A-Za-z0-9_-]{20,}"),
     "GitHub token": re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{20,})"),
     "Google API key": re.compile(r"\bAIza[0-9A-Za-z_-]{30,}"),
@@ -71,12 +74,14 @@ def mask(text: str) -> str:
     return text if len(text) <= 8 else f"{text[:4]}…{text[-2:]}"
 
 
-def load_terms(repo: Path, terms_file: Path | None = None) -> list[str]:
+def load_terms(repo: Path, terms_file: Path | None = None) -> tuple[list[str], list[str]]:
+    """(personal terms, allowed exact texts) from the local terms file."""
     path = terms_file or Path(git("rev-parse", "--absolute-git-dir", cwd=repo).strip()) / "public_safety_terms.txt"
     if not path.exists():
-        return []
-    lines = (ln.strip() for ln in path.read_text(encoding="utf-8").splitlines())
-    return [ln for ln in lines if ln and not ln.startswith("#")]
+        return [], []
+    lines = [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines()]
+    lines = [ln for ln in lines if ln and not ln.startswith("#")]
+    return [ln for ln in lines if not ln.startswith("!")], [ln[1:] for ln in lines if ln.startswith("!")]
 
 
 def _term_pattern(terms: list[str]) -> re.Pattern | None:
@@ -86,9 +91,14 @@ def _term_pattern(terms: list[str]) -> re.Pattern | None:
     return re.compile(r"(?<!\w)(?:" + "|".join(alts) + r")(?!\w)", re.I)
 
 
+ALLOWED_TEXTS: list[str] = []
+
+
 def scan_text(text: str, where: str, term_re: re.Pattern | None, path: str) -> list[Finding]:
     findings = []
     for n, line in enumerate(text.splitlines(), start=1):
+        for allowed in ALLOWED_TEXTS:
+            line = line.replace(allowed, "")
         for category, pattern in PATTERNS.items():
             for m in pattern.finditer(line):
                 findings.append(Finding(f"{where}:{n}", category, mask(m.group())))
@@ -167,7 +177,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     repo = Path(git("rev-parse", "--show-toplevel", cwd=args.repo).strip())
-    terms = load_terms(repo, args.terms)
+    terms, allowed = load_terms(repo, args.terms)
+    ALLOWED_TEXTS[:] = allowed
     term_re = _term_pattern(terms)
     findings = scan_tree(repo, term_re)
     rev_sets = pre_push_revs(sys.stdin.read()) if args.pre_push is not None else []
