@@ -70,3 +70,29 @@ def test_llm_provider_cloud_blocked_without_switch(monkeypatch):
     finally:
         monkeypatch.setenv("LLM_PROVIDER", "local")
         importlib.reload(llm)
+
+
+def test_local_llm_client_is_reused():
+    pytest.importorskip("langchain_ollama")
+    from agents import llm
+
+    assert llm.get_llm(0.1) is llm.get_llm(0.1)
+    assert llm.get_llm(0.1) is not llm.get_llm(0.5)
+
+
+def test_cached_cloud_client_still_checks_switch(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "cloud")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "dummy")
+    monkeypatch.setenv(CLOUD_ENV_VAR, "1")
+    from agents import llm
+
+    llm = importlib.reload(llm)
+    try:
+        llm.get_llm(0.2)  # builds and caches the cloud client
+        monkeypatch.delenv(CLOUD_ENV_VAR)
+        with pytest.raises(CloudDisabledError):
+            llm.get_llm(0.2)
+    finally:
+        monkeypatch.setenv("LLM_PROVIDER", "local")
+        llm._cloud_llm.cache_clear()
+        importlib.reload(llm)
