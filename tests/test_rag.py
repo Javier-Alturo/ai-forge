@@ -1,10 +1,9 @@
 import os
 import sys
-from pathlib import Path
 
 sys.path.insert(0, ".")
 
-from agents.rag_tools import rag_add_document, rag_query, rag_index_documents
+from agents.rag_tools import rag_add_document, rag_query
 
 
 def test_rag_flow():

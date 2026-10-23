@@ -98,6 +98,24 @@ def file_move_or_copy(source_path: str, destination_path: str, operation: str) -
     return "operation debe ser 'move' o 'copy'"
 
 
+def _search_match(p: Path, needle: str, max_file_bytes: int) -> bool:
+    """True si `p` es un archivo permitido y (si hay needle) lo contiene."""
+    if not p.is_file():
+        return False
+    try:
+        check_path(str(p))
+    except PathNotAllowedError:
+        return False  # nunca listar ni leer credenciales
+    if not needle:
+        return True
+    try:
+        if p.stat().st_size > max_file_bytes:
+            return False
+        return needle in p.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return False
+
+
 @tool
 def file_search(
     root_path: str,
@@ -128,23 +146,8 @@ def file_search(
         if len(hits) >= max_files:
             hits.append("... (límite max_files alcanzado)")
             break
-        if not p.is_file():
-            continue
-        try:
-            check_path(str(p))
-        except PathNotAllowedError:
-            continue  # nunca listar ni leer credenciales
-        if not needle:
+        if _search_match(p, needle, max_file_bytes):
             hits.append(str(p))
-            continue
-        try:
-            if p.stat().st_size > max_file_bytes:
-                continue
-            text = p.read_text(encoding="utf-8", errors="ignore")
-            if needle in text:
-                hits.append(str(p))
-        except OSError:
-            continue
     return "\n".join(hits) if hits else "Sin coincidencias."
 
 

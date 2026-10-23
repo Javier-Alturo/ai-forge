@@ -135,7 +135,7 @@ def get_messages_since_yesterday() -> list[str]:
                 messages.append(text)
 
         return messages
-    except Exception as e:
+    except (httpx.HTTPError, ValueError) as e:
         print(f"⚠️ Error leyendo mensajes de Telegram: {e}")
         return []
 
@@ -214,7 +214,7 @@ Solo incluye tareas donde haya avance claro. No inventes avances.
         result = json.loads(match.group())
         return {u["task_id"]: u for u in result.get("updates", [])}
 
-    except Exception as e:
+    except (_httpx.HTTPError, ValueError, KeyError, TypeError) as e:
         print(f"⚠️ Error analizando mensajes con IA: {e}")
         return {}
 

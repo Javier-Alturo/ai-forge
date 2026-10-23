@@ -1,13 +1,12 @@
 import os
 import sys
-import time
 
 sys.path.insert(0, ".")
 
 from agents.memory_manager import write
 
 import uuid
-from agents.chroma_memory import list_memory, delete_by_id, semantic_search
+from agents.chroma_memory import list_memory, semantic_search
 
 def test_deduplication():
     # 1. Guardar una nota original
