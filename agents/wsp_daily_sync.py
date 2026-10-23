@@ -51,6 +51,7 @@ from agents.wsp_sync_report import build_wsp_summary, generate_summary, save_to_
 
 # ── Configuración ─────────────────────────────────────────────────────────────
 WSP_NUMBER = os.getenv("WSP_SYNC_NUMBER", "")
+WSP_API_URL = os.getenv("WSP_API_URL", "http://localhost:3000")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 OLLAMA_MODEL    = os.getenv("OLLAMA_MODEL", "qwen2.5:14b")
 OBSIDIAN_VAULT  = os.getenv("OBSIDIAN_VAULT_PATH", "")
@@ -111,6 +112,7 @@ def fetch_wsp_messages_today(max_messages: int = 20) -> list[dict]:
     de fecha real. Aceptable para este proyecto personal; no usar tal cual en
     un producto multi-usuario sin resolver el chequeo de fecha real.
     """
+    from playwright.sync_api import Error as PlaywrightError
     from playwright.sync_api import sync_playwright
 
     raw_texts: list[str] = []
@@ -139,7 +141,7 @@ def fetch_wsp_messages_today(max_messages: int = 20) -> list[dict]:
                 raw_texts = [r.inner_text() for r in rows[-max_messages:]]
             finally:
                 browser.close()
-    except Exception as e:
+    except (PlaywrightError, OSError) as e:
         print(f"⚠️  No se pudo leer WhatsApp via Playwright: {e}")
         print("   ¿Corriste scripts/wsp_login_bootstrap.py para vincular la sesión?")
         return []
