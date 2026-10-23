@@ -45,7 +45,15 @@ def _ignored(path: str) -> bool:
     return result.returncode == 0
 
 
-pytestmark = pytest.mark.skipif(shutil.which("git") is None, reason="git not installed")
+def _in_git_repo() -> bool:
+    if shutil.which("git") is None:
+        return False
+    result = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=ROOT, capture_output=True, check=False)
+    return result.returncode == 0
+
+
+# Outside a git checkout `git check-ignore` cannot answer, which would look like "not ignored".
+pytestmark = pytest.mark.skipif(not _in_git_repo(), reason="not inside a git work tree")
 
 
 @pytest.mark.parametrize("path", MUST_BE_IGNORED)

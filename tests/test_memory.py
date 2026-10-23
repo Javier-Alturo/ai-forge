@@ -6,6 +6,11 @@ sys.path.insert(0, ".")
 from agents.memory_manager import write
 
 import uuid
+import pytest
+
+# Real embeddings (sentence-transformers + torch); skipped in the lightweight CI install.
+pytest.importorskip("sentence_transformers")
+
 from agents.chroma_memory import list_memory, semantic_search
 
 def test_deduplication():
