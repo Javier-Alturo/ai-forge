@@ -3,7 +3,7 @@
 ![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
-![Tests](https://img.shields.io/badge/tests-339-brightgreen)
+![Tests](https://img.shields.io/badge/tests-362-brightgreen)
 ![Routing eval](https://img.shields.io/badge/routing%20eval-85.7%25-blue)
 ![Agents](https://img.shields.io/badge/agents-17-purple)
 
