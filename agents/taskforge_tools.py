@@ -7,50 +7,31 @@ Patron: mismo que Fitness Agent (JSON plano, sin dependencias externas).
 
 from __future__ import annotations
 
-import json
 import uuid
-from datetime import date, datetime
-from pathlib import Path
+from datetime import date
 
 from langchain_core.tools import tool
 
 from agents.a2a_log import a2a_log
 
-# ── Rutas de datos ────────────────────────────────────────────────────────────
-_ROOT = Path(__file__).resolve().parent.parent
-_TASKFORGE_DIR = _ROOT / "data" / "taskforge"
-_TASKS_FILE    = _TASKFORGE_DIR / "tasks.json"
-_GOALS_FILE    = _TASKFORGE_DIR / "goals.json"
-_HABITS_FILE   = _TASKFORGE_DIR / "habits.json"
-_LOGS_FILE     = _TASKFORGE_DIR / "logs.json"
-
-
-def _ensure_dirs() -> None:
-    _TASKFORGE_DIR.mkdir(parents=True, exist_ok=True)
-    for f in [_TASKS_FILE, _GOALS_FILE, _HABITS_FILE, _LOGS_FILE]:
-        if not f.exists():
-            f.write_text("[]", encoding="utf-8")
-
-
-def _load(path: Path) -> list:
-    _ensure_dirs()
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return []
-
-
-def _save(path: Path, data: list) -> None:
-    _ensure_dirs()
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-def _today() -> str:
-    return date.today().isoformat()
-
-
-def _now() -> str:
-    return datetime.now().isoformat(timespec="seconds")
+# Almacenamiento y hábitos viven en módulos propios; se re-exportan aquí por compatibilidad
+# (dashboard/app.py y wsp_daily_sync importan estos nombres desde taskforge_tools).
+from agents.taskforge_habits import (  # noqa: F401
+    taskforge_add_habit,
+    taskforge_complete_habit,
+    taskforge_delete_habit,
+    taskforge_uncomplete_habit,
+)
+from agents.taskforge_store import (  # noqa: F401
+    _GOALS_FILE,
+    _HABITS_FILE,
+    _LOGS_FILE,
+    _TASKS_FILE,
+    _load,
+    _now,
+    _save,
+    _today,
+)
 
 
 # ── TOOLS DE TAREAS ───────────────────────────────────────────────────────────
@@ -211,188 +192,6 @@ def taskforge_get_goals() -> str:
     return "\n".join(lines)
 
 
-# ── TOOLS DE HABITOS ──────────────────────────────────────────────────────────
-
-@tool
-def taskforge_add_habit(
-    goal_id: str,
-    title: str,
-    increment: float = 0.5,
-) -> str:
-    """Adjunta un habito diario a una meta.
-
-    Args:
-        goal_id: ID de la meta a la que pertenece este habito.
-        title: Descripcion del habito (ej: 'Grabar 1 video en ingles').
-        increment: Cuanto sube el progreso de la meta al completar (default: 0.5%).
-    """
-    a2a_log("taskforge", "habits", "add_habit", f"{goal_id}:{title[:60]}")
-    goals = _load(_GOALS_FILE)
-    goal_ids = [g["id"] for g in goals]
-
-    if goal_id not in goal_ids:
-        return f"Meta [{goal_id}] no encontrada. Usa taskforge_get_goals para ver los IDs."
-
-    habits = _load(_HABITS_FILE)
-    habit = {
-        "id": str(uuid.uuid4())[:8],
-        "goal_id": goal_id,
-        "title": title,
-        "increment": increment,
-        "streak": 0,
-        "last_completed": None,
-        "created_at": _now(),
-    }
-    habits.append(habit)
-    _save(_HABITS_FILE, habits)
-    return f"Habito creado [{habit['id']}]: '{title}' (+{increment}% por completar) -> Meta [{goal_id}]"
-
-
-@tool
-def taskforge_complete_habit(habit_id: str) -> str:
-    """Marca un habito como completado hoy y actualiza el progreso de su meta.
-
-    Args:
-        habit_id: ID del habito a completar.
-    """
-    a2a_log("taskforge", "habits", "complete_habit", habit_id)
-    habits = _load(_HABITS_FILE)
-    goals  = _load(_GOALS_FILE)
-    logs   = _load(_LOGS_FILE)
-
-    habit = next((h for h in habits if h["id"] == habit_id), None)
-    if not habit:
-        return f"Habito [{habit_id}] no encontrado. Usa taskforge_get_goals para ver los habitos."
-
-    # Verificar si ya se completo hoy
-    if habit.get("last_completed") == _today():
-        return f"El habito '{habit['title']}' ya fue completado hoy."
-
-    # Actualizar racha
-    from datetime import timedelta
-    yesterday = (date.today() - timedelta(days=1)).isoformat()
-    if habit.get("last_completed") == yesterday:
-        habit["streak"] = habit.get("streak", 0) + 1
-    else:
-        habit["streak"] = 1
-    habit["last_completed"] = _today()
-    _save(_HABITS_FILE, habits)
-
-    # Actualizar progreso + XP de la meta (sistema RPG)
-    goal = next((g for g in goals if g["id"] == habit["goal_id"]), None)
-    old_progress = goal["progress"] if goal else 0
-    xp_earned = habit.get("xp_reward", 20)
-    if goal:
-        goal["progress"] = min(100.0, round(goal["progress"] + habit.get("increment", 0.5), 2))
-        goal["xp"] = goal.get("xp", 0) + xp_earned
-        XP_PER_LEVEL = 200
-        goal["level"] = goal["xp"] // XP_PER_LEVEL
-
-        # Propagar a metas relacionadas (como metas semanales compartiendo la misma stat)
-        stat_key = goal.get("stat")
-        if stat_key:
-            for other_g in goals:
-                if other_g["id"] != goal["id"] and other_g.get("stat") == stat_key:
-                    inc = habit.get("increment", 0.5)
-                    # Incrementos proporcionales según el tipo de meta semanal
-                    if other_g["id"] == "w_gym_01" and habit["id"] == "gym_h001":
-                        inc = 20.0  # 5 entrenamientos = 100%
-                    elif other_g["id"] == "w_eng_01" and habit["id"] == "e89a2afe":
-                        inc = 33.33 # 3 videos = 100%
-                    
-                    other_g["progress"] = min(100.0, round(other_g["progress"] + inc, 2))
-                    other_g["xp"] = other_g.get("xp", 0) + xp_earned
-                    other_g["level"] = other_g["xp"] // XP_PER_LEVEL
-        
-        _save(_GOALS_FILE, goals)
-
-    # Registrar log
-    logs.append({
-        "habit_id": habit_id,
-        "action": "habit_completed",
-        "xp_earned": xp_earned,
-        "date": _today(),
-        "created_at": _now(),
-    })
-    _save(_LOGS_FILE, logs)
-
-    progress_str = ""
-    xp_str = f" | +{xp_earned} XP"
-    if goal:
-        progress_str = f" | Meta '{goal['title']}': {old_progress:.1f}% → {goal['progress']:.1f}% | Nivel {goal['level']}"
-
-    streak_bonus = " 🔥🔥" if habit["streak"] >= 7 else " 🔥" if habit["streak"] >= 3 else ""
-    return (
-        f"✅ Hábito completado: '{habit['title']}' | "
-        f"Racha: {habit['streak']} días{streak_bonus}{xp_str}{progress_str}"
-    )
-
-
-@tool
-def taskforge_uncomplete_habit(habit_id: str) -> str:
-    """Marca un habito como no completado hoy y revierte el progreso y XP de su meta.
-
-    Args:
-        habit_id: ID del habito a desmarcar.
-    """
-    a2a_log("taskforge", "habits", "uncomplete_habit", habit_id)
-    habits = _load(_HABITS_FILE)
-    goals  = _load(_GOALS_FILE)
-    logs   = _load(_LOGS_FILE)
-
-    habit = next((h for h in habits if h["id"] == habit_id), None)
-    if not habit:
-        return f"Habito [{habit_id}] no encontrado."
-
-    if habit.get("last_completed") != _today():
-        return f"El habito '{habit['title']}' no ha sido completado hoy."
-
-    # Descontar racha (si subió, restar 1, o resetear)
-    habit["streak"] = max(0, habit.get("streak", 1) - 1)
-    habit["last_completed"] = None
-    _save(_HABITS_FILE, habits)
-
-    # Revertir progreso + XP de la meta
-    goal = next((g for g in goals if g["id"] == habit["goal_id"]), None)
-    old_progress = goal["progress"] if goal else 0
-    xp_lost = habit.get("xp_reward", 20)
-    if goal:
-        goal["progress"] = max(0.0, round(goal["progress"] - habit.get("increment", 0.5), 2))
-        goal["xp"] = max(0, goal.get("xp", 0) - xp_lost)
-        XP_PER_LEVEL = 200
-        goal["level"] = goal["xp"] // XP_PER_LEVEL
-
-        # Revertir en metas relacionadas (como metas semanales compartiendo la misma stat)
-        stat_key = goal.get("stat")
-        if stat_key:
-            for other_g in goals:
-                if other_g["id"] != goal["id"] and other_g.get("stat") == stat_key:
-                    inc = habit.get("increment", 0.5)
-                    # Revertir incrementos proporcionales específicos
-                    if other_g["id"] == "w_gym_01" and habit["id"] == "gym_h001":
-                        inc = 20.0  # 5 entrenamientos = 100%
-                    elif other_g["id"] == "w_eng_01" and habit["id"] == "e89a2afe":
-                        inc = 33.33 # 3 videos = 100%
-                    
-                    other_g["progress"] = max(0.0, round(other_g["progress"] - inc, 2))
-                    other_g["xp"] = max(0, other_g.get("xp", 0) - xp_lost)
-                    other_g["level"] = other_g["xp"] // XP_PER_LEVEL
-        
-        _save(_GOALS_FILE, goals)
-
-    # Eliminar log de hoy para este hábito
-    new_logs = [log for log in logs if not (log.get("habit_id") == habit_id and log.get("date") == _today() and log.get("action") == "habit_completed")]
-    _save(_LOGS_FILE, new_logs)
-
-    progress_str = ""
-    if goal:
-        progress_str = f" | Meta '{goal['title']}': {old_progress:.1f}% → {goal['progress']:.1f}% | Nivel {goal['level']}"
-
-    return f"🔄 Hábito desmarcado: '{habit['title']}'{progress_str}"
-
-
-
-
 # ── TOOLS DE METRICAS ─────────────────────────────────────────────────────────
 
 @tool
@@ -403,7 +202,6 @@ def taskforge_get_metrics() -> str:
 
     tasks  = _load(_TASKS_FILE)
     habits = _load(_HABITS_FILE)
-    logs   = _load(_LOGS_FILE)
 
     today     = date.today()
     week_start = (today - timedelta(days=today.weekday())).isoformat()
@@ -486,25 +284,6 @@ def taskforge_delete_goal(goal_id: str) -> str:
     _save(_GOALS_FILE, new_goals)
     _save(_HABITS_FILE, new_habits)
     return f"Meta [{goal_id}] y sus hábitos asociados han sido eliminados correctamente."
-
-
-@tool
-def taskforge_delete_habit(habit_id: str) -> str:
-    """Elimina un hábito por su ID.
-
-    Args:
-        habit_id: ID del hábito a eliminar.
-    """
-    a2a_log("taskforge", "habits", "delete_habit", habit_id)
-    habits = _load(_HABITS_FILE)
-
-    habit_exists = any(h["id"] == habit_id for h in habits)
-    if not habit_exists:
-        return f"Hábito [{habit_id}] no encontrado."
-
-    new_habits = [h for h in habits if h["id"] != habit_id]
-    _save(_HABITS_FILE, new_habits)
-    return f"Hábito [{habit_id}] eliminado correctamente."
 
 
 # ── EXPORT ────────────────────────────────────────────────────────────────────
