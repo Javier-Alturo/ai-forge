@@ -13,6 +13,8 @@ sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
 load_dotenv(ROOT / ".env")
 
+from core.telegram_auth import allowed_chat_ids, is_authorized
+
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 def get_updates(offset=None):
@@ -45,7 +47,10 @@ def main():
     if not TELEGRAM_TOKEN:
         print("❌ TELEGRAM_BOT_TOKEN no configurado en .env.")
         sys.exit(1)
-        
+    if not allowed_chat_ids():
+        print("❌ TELEGRAM_CHAT_ID no configurado en .env: el bot no respondería a nadie.")
+        sys.exit(1)
+
     print("🤖 Telegram Listener de AI-Forge activo. Escuchando comandos...")
     offset = None
     
@@ -57,7 +62,11 @@ def main():
             msg = update.get("message", {})
             text = msg.get("text", "").strip()
             chat_id = msg.get("chat", {}).get("id")
-            
+
+            if not is_authorized(msg):
+                print(f"⛔ Mensaje ignorado de chat no autorizado: {chat_id}")
+                continue
+
             if text == "/daily" or text == "/briefing":
                 print(f"📩 Comando {text} recibido del chat {chat_id}. Generando briefing...")
                 send_message(chat_id, "⏳ Generando Morning Briefing, dame unos segundos...")

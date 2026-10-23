@@ -19,6 +19,8 @@ sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
 load_dotenv(ROOT / ".env")
 
+from core.telegram_auth import is_authorized
+
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TASKS_PATH = ROOT / "data" / "taskforge" / "tasks.json"
 GOALS_PATH = ROOT / "data" / "taskforge" / "goals.json"
@@ -127,6 +129,8 @@ def get_messages_since_yesterday() -> list[str]:
             text = msg.get("text", "").strip()
 
             # Solo mensajes recientes, sin comandos, con contenido
+            if not is_authorized(msg):
+                continue
             if date_ts >= since_ts and text and not text.startswith("/"):
                 messages.append(text)
 
