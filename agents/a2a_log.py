@@ -34,4 +34,4 @@ def a2a_log(source: str, target: str, action: str, detail: str | None = None) ->
 
         emit_log_line(line)
     except Exception:  # noqa: BLE001 — el dashboard no debe romper logs
-        pass
+        _log.debug("emit_log_line failed", exc_info=True)

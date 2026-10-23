@@ -14,8 +14,10 @@ from agents.email_tools import get_email_tools
 from agents.llm import get_llm
 
 EMAIL_PROMPT = """Eres el agente de CORREO (Gmail).
-Usa las herramientas para listar, buscar o enviar emails. Requiere OAuth2 (credentials.json + token.json).
-Responde en español. Para enviar, confirma destinatario y asunto si el usuario fue ambiguo."""
+Usa las herramientas para listar o buscar emails. Requiere OAuth2 (credentials.json + token.json).
+Tu acceso a Gmail es SOLO LECTURA: no puedes enviar, modificar ni borrar correos. Si te piden enviar uno,
+explica que el envío está deshabilitado por seguridad y ofrece un borrador en texto.
+Responde en español."""
 
 
 class EmailAgent(AgentBase):
@@ -34,7 +36,7 @@ class EmailAgent(AgentBase):
     def _run(self, user_input: str, context: Dict[str, Any], config: Dict[str, Any] | None) -> str:
         result = self._graph.invoke(
             {"messages": [HumanMessage(content=user_input)]},
-            config=config or {"recursion_limit": 35},
+            config={"recursion_limit": 35, **(config or {})},
         )
         return extract_final_ai_text(result) or "(sin respuesta)"
 

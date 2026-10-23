@@ -1,0 +1,51 @@
+// Generic MemoryGate eval. 50 fictional conversation turns, 10 per class.
+{"text": "Usuario: Trabajo con Python 3.12 y uso Poetry para las dependencias.\nAsistente: Anotado, usaré Poetry en los ejemplos.", "expected": "fact"}
+{"text": "Usuario: Mi servidor de pruebas corre en Ubuntu 24.04 con 16 GB de RAM.\nAsistente: Entendido.", "expected": "fact"}
+{"text": "Usuario: El proyecto Atlas tiene su repositorio en GitLab, no en GitHub.\nAsistente: Perfecto, lo tendré en cuenta.", "expected": "fact"}
+{"text": "Usuario: Mi zona horaria es America/Bogota.\nAsistente: Ajustaré las horas a tu zona.", "expected": "fact"}
+{"text": "Usuario: El cliente Panadería Sol tiene 3 sucursales y usa WhatsApp para pedidos.\nAsistente: Registrado.", "expected": "fact"}
+{"text": "Usuario: Mi modelo local es qwen2.5 de 14B corriendo en una RTX 3060.\nAsistente: Bien, optimizaré para esa GPU.", "expected": "fact"}
+{"text": "Usuario: La base de datos de producción de Atlas es PostgreSQL 16.\nAsistente: Tomado en cuenta.", "expected": "fact"}
+{"text": "Usuario: Tengo un perro llamado Toby que necesita paseo a las 7 am.\nAsistente: Lo recordaré.", "expected": "fact"}
+{"text": "Usuario: El dominio del portafolio es ejemplo-portafolio.dev.\nAsistente: Anotado.", "expected": "fact"}
+{"text": "Usuario: Nuestro equipo tiene 4 personas: dos backend, una frontend y una de datos.\nAsistente: Entendido.", "expected": "fact"}
+{"text": "Usuario: Prefiero que me respondas siempre en español y de forma breve.\nAsistente: De acuerdo.", "expected": "preference"}
+{"text": "Usuario: No me gustan los emojis en los reportes formales.\nAsistente: Los omitiré.", "expected": "preference"}
+{"text": "Usuario: Cuando me muestres código, usa type hints siempre.\nAsistente: Así lo haré.", "expected": "preference"}
+{"text": "Usuario: Prefiero tablas en vez de listas largas para comparar opciones.\nAsistente: Usaré tablas.", "expected": "preference"}
+{"text": "Usuario: Las reuniones prefiero agendarlas en la tarde, nunca antes de las 9.\nAsistente: Entendido.", "expected": "preference"}
+{"text": "Usuario: Explícame los conceptos con analogías simples, me ayuda a entender.\nAsistente: Claro.", "expected": "preference"}
+{"text": "Usuario: Para los commits usa siempre mensajes en inglés con formato convencional.\nAsistente: Hecho.", "expected": "preference"}
+{"text": "Usuario: Quiero los resúmenes del briefing en máximo cinco puntos.\nAsistente: Los acortaré.", "expected": "preference"}
+{"text": "Usuario: Prefiero modelos locales antes que APIs en la nube por privacidad.\nAsistente: Priorizaré lo local.", "expected": "preference"}
+{"text": "Usuario: No me envíes notificaciones los domingos.\nAsistente: Pausaré las notificaciones ese día.", "expected": "preference"}
+{"text": "Usuario: Decidimos usar ChromaDB en vez de Pinecone para la memoria.\nAsistente: Registrada la decisión.", "expected": "decision"}
+{"text": "Usuario: Vamos a migrar el dashboard de Flask a FastAPI.\nAsistente: Entendido, planificaré la migración.", "expected": "decision"}
+{"text": "Usuario: Elegimos LangFuse autoalojado para la observabilidad.\nAsistente: Anotado.", "expected": "decision"}
+{"text": "Usuario: A partir de ahora todas las ramas nuevas salen de develop, no de main.\nAsistente: De acuerdo.", "expected": "decision"}
+{"text": "Usuario: Descartamos el plan de cobrar suscripción mensual; será pago único.\nAsistente: Registrado.", "expected": "decision"}
+{"text": "Usuario: Decidí que el agente de imágenes solo correrá con GPU, nunca en CPU.\nAsistente: Lo configuraré así.", "expected": "decision"}
+{"text": "Usuario: El equipo acordó congelar features hasta terminar las evals.\nAsistente: Entendido.", "expected": "decision"}
+{"text": "Usuario: Vamos a usar Ruff como único linter del proyecto.\nAsistente: Perfecto.", "expected": "decision"}
+{"text": "Usuario: Se decidió que el bot de Telegram solo responde a mi chat.\nAsistente: Anotado.", "expected": "decision"}
+{"text": "Usuario: Escogimos SQLite para el prototipo y Postgres para producción.\nAsistente: Registrado.", "expected": "decision"}
+{"text": "Usuario: Hoy, 3 de marzo, desplegamos la versión 2.0 de Atlas a producción.\nAsistente: ¡Felicidades por el despliegue!", "expected": "event"}
+{"text": "Usuario: Ayer firmamos el contrato con la Panadería Sol.\nAsistente: Excelente noticia.", "expected": "event"}
+{"text": "Usuario: El 15 de abril tengo la entrevista técnica con la empresa Nimbus.\nAsistente: Te ayudaré a prepararla.", "expected": "event"}
+{"text": "Usuario: Esta mañana se cayó el servidor de staging por falta de disco.\nAsistente: Anotado el incidente.", "expected": "event"}
+{"text": "Usuario: Terminé el curso de Docker el viernes pasado.\nAsistente: ¡Muy bien!", "expected": "event"}
+{"text": "Usuario: La demo con el cliente quedó para el martes 10 a las 3 pm.\nAsistente: Lo tendré presente.", "expected": "event"}
+{"text": "Usuario: Hoy publiqué mi primer artículo en el blog técnico.\nAsistente: ¡Felicitaciones!", "expected": "event"}
+{"text": "Usuario: El 1 de junio empieza mi nuevo trabajo como ingeniero de IA.\nAsistente: ¡Qué gran paso!", "expected": "event"}
+{"text": "Usuario: Anoche se venció el certificado SSL del portafolio y lo renové.\nAsistente: Bien resuelto.", "expected": "event"}
+{"text": "Usuario: La semana pasada cerramos el sprint 12 con todas las historias completas.\nAsistente: Excelente.", "expected": "event"}
+{"text": "Usuario: Hola, buenos días.\nAsistente: ¡Buenos días! ¿En qué te ayudo?", "expected": "ephemeral"}
+{"text": "Usuario: Gracias.\nAsistente: ¡Con gusto!", "expected": "ephemeral"}
+{"text": "Usuario: ¿Cuánto es 15 por 23?\nAsistente: 345.", "expected": "ephemeral"}
+{"text": "Usuario: Ok, perfecto.\nAsistente: Genial.", "expected": "ephemeral"}
+{"text": "Usuario: Me sale un error de indentación en la línea 12, ¿qué hago?\nAsistente: Revisa que uses solo espacios.", "expected": "ephemeral"}
+{"text": "Usuario: ¿Qué hora es?\nAsistente: Son las 4:15 pm.", "expected": "ephemeral"}
+{"text": "Usuario: Repite la última respuesta, por favor.\nAsistente: Claro, aquí está de nuevo.", "expected": "ephemeral"}
+{"text": "Usuario: jajaja buenísimo\nAsistente: 😄", "expected": "ephemeral"}
+{"text": "Usuario: ¿Cómo se dice 'mesa' en inglés?\nAsistente: Table.", "expected": "ephemeral"}
+{"text": "Usuario: Espera un momento, ya vuelvo.\nAsistente: Aquí estaré.", "expected": "ephemeral"}

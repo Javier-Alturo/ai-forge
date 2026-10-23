@@ -1,6 +1,10 @@
 import os
 from pathlib import Path
 from langchain_core.tools import tool
+
+from agents.logger import get_logger
+
+log = get_logger("obsidian")
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,7 +23,11 @@ def get_vault_path() -> Path:
 def _resolve_note_path(title: str) -> Path:
     if not title.endswith(".md"):
         title += ".md"
-    return get_vault_path() / title
+    vault = get_vault_path().resolve()
+    path = (vault / title).resolve()
+    if vault not in path.parents:
+        raise ValueError(f"La nota debe estar dentro del vault: {title}")
+    return path
 
 @tool
 def obsidian_read_note(title: str) -> str:
@@ -30,7 +38,7 @@ def obsidian_read_note(title: str) -> str:
             return f"Error: La nota '{title}' no existe en {path.parent}."
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
-    except Exception as e:
+    except (ValueError, OSError) as e:  # vault mal configurado, ruta inválida o error de disco
         return f"Error al leer la nota: {str(e)}"
 
 @tool
@@ -42,7 +50,7 @@ def obsidian_write_note(title: str, content: str) -> str:
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)
         return f"Nota '{title}' guardada exitosamente en el vault."
-    except Exception as e:
+    except (ValueError, OSError) as e:  # vault mal configurado, ruta inválida o error de disco
         return f"Error al escribir la nota: {str(e)}"
 
 @tool
@@ -55,7 +63,7 @@ def obsidian_append_note(title: str, content: str) -> str:
         with open(path, "a", encoding="utf-8") as f:
             f.write(f"\n\n{content}")
         return f"Contenido añadido a '{title}' exitosamente."
-    except Exception as e:
+    except (ValueError, OSError) as e:  # vault mal configurado, ruta inválida o error de disco
         return f"Error al modificar la nota: {str(e)}"
 
 @tool
@@ -74,15 +82,15 @@ def obsidian_search_notes(query: str) -> str:
                         end = min(len(content), idx + len(query) + 40)
                         snippet = content[start:end].replace("\n", " ")
                         results.append(f"- {filepath.name}: ...{snippet}...")
-            except Exception:
-                pass 
+            except (OSError, ValueError):
+                log.debug("Nota ilegible, se omite: %s", filepath.name, exc_info=True)
                 
         if not results:
             return f"No se encontró '{query}' en ninguna nota del vault."
         
         # Limitar a 20 resultados para no exceder el contexto
         return f"Coincidencias encontradas ({len(results)} en total):\n" + "\n".join(results[:20])
-    except Exception as e:
+    except (ValueError, OSError) as e:  # vault mal configurado, ruta inválida o error de disco
         return f"Error en la búsqueda: {str(e)}"
 
 @tool
@@ -105,8 +113,8 @@ def obsidian_get_recent_notes(days: int = 7) -> str:
                         if len(content) > 500:
                             content = content[:500] + "... (truncado)"
                         recent_notes.append(f"--- Nota: {filepath.name} ---\n{content}\n")
-            except Exception:
-                pass
+            except (OSError, ValueError):
+                log.debug("Nota ilegible, se omite: %s", filepath.name, exc_info=True)
                 
         if not recent_notes:
             return f"No se encontraron notas modificadas en los últimos {days} días."
@@ -117,7 +125,7 @@ def obsidian_get_recent_notes(days: int = 7) -> str:
             recent_notes.append("\n... (limitado a las 15 más recientes)")
             
         return f"Notas recientes (últimos {days} días):\n\n" + "\n".join(recent_notes)
-    except Exception as e:
+    except (ValueError, OSError) as e:  # vault mal configurado, ruta inválida o error de disco
         return f"Error al buscar notas recientes: {str(e)}"
 
 def get_obsidian_tools():

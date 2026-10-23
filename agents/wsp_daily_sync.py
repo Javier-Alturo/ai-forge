@@ -24,6 +24,7 @@ import json
 import os
 import sys
 import re
+import urllib.request
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -44,11 +45,13 @@ load_dotenv(ROOT / ".env")
 # ── Importar herramientas existentes ─────────────────────────────────────────
 from agents.taskforge_tools import (
     _load, _save, _today, _now,
-    _HABITS_FILE, _GOALS_FILE, _TASKS_FILE, _LOGS_FILE,
+    _HABITS_FILE, _GOALS_FILE, _LOGS_FILE,
 )
+from agents.wsp_sync_report import build_wsp_summary, generate_summary, save_to_obsidian
 
 # ── Configuración ─────────────────────────────────────────────────────────────
 WSP_NUMBER = os.getenv("WSP_SYNC_NUMBER", "")
+WSP_API_URL = os.getenv("WSP_API_URL", "http://localhost:3000")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 OLLAMA_MODEL    = os.getenv("OLLAMA_MODEL", "qwen2.5:14b")
 OBSIDIAN_VAULT  = os.getenv("OBSIDIAN_VAULT_PATH", "")
@@ -109,6 +112,7 @@ def fetch_wsp_messages_today(max_messages: int = 20) -> list[dict]:
     de fecha real. Aceptable para este proyecto personal; no usar tal cual en
     un producto multi-usuario sin resolver el chequeo de fecha real.
     """
+    from playwright.sync_api import Error as PlaywrightError
     from playwright.sync_api import sync_playwright
 
     raw_texts: list[str] = []
@@ -137,7 +141,7 @@ def fetch_wsp_messages_today(max_messages: int = 20) -> list[dict]:
                 raw_texts = [r.inner_text() for r in rows[-max_messages:]]
             finally:
                 browser.close()
-    except Exception as e:
+    except (PlaywrightError, OSError) as e:
         print(f"⚠️  No se pudo leer WhatsApp via Playwright: {e}")
         print("   ¿Corriste scripts/wsp_login_bootstrap.py para vincular la sesión?")
         return []
@@ -182,7 +186,7 @@ MENSAJES DE HOY ({_today()}):
 
 TAREA:
 Analiza los mensajes y determina cuáles hábitos fueron completados hoy.
-Busca menciones directas o indirectas (ej: "hice ejercicio" → "Entreno o actividad física 30 min", 
+Busca menciones directas o indirectas (ej: "ya ordené el escritorio" → "Ordenar el espacio de trabajo", 
 "leí un rato" → "Leer 20 páginas", "medité" → "Meditar 10 min", etc.)
 
 Responde ÚNICAMENTE con un JSON válido en este formato exacto:
@@ -202,7 +206,6 @@ Solo JSON, sin markdown, sin texto adicional."""
 
 def call_llm(prompt: str) -> Optional[str]:
     """Llama al LLM local (Ollama) y retorna la respuesta."""
-    import urllib.request, json as _json
 
     payload = {
         "model": OLLAMA_MODEL,
@@ -212,7 +215,7 @@ def call_llm(prompt: str) -> Optional[str]:
     }
 
     try:
-        body = _json.dumps(payload).encode()
+        body = json.dumps(payload).encode()
         req = urllib.request.Request(
             f"{OLLAMA_BASE_URL}/api/generate",
             data=body,
@@ -220,9 +223,9 @@ def call_llm(prompt: str) -> Optional[str]:
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=60) as resp:
-            result = _json.loads(resp.read().decode())
+            result = json.loads(resp.read().decode())
             return result.get("response", "")
-    except Exception as e:
+    except (OSError, ValueError) as e:
         print(f"⚠️  Error llamando al LLM: {e}")
         return None
 
@@ -338,129 +341,11 @@ def apply_changes(analysis: dict, dry_run: bool = False) -> tuple[list[str], lis
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 4. GENERAR RESUMEN
-# ══════════════════════════════════════════════════════════════════════════════
-
-def generate_summary(completed: list[str], pending: list[str], analysis: dict) -> str:
-    """Genera un resumen legible del día."""
-    goals  = _load(_GOALS_FILE)
-    habits = _load(_HABITS_FILE)
-
-    today = _today()
-    total_habits = len(habits)
-    done_habits  = sum(1 for h in habits if h.get("last_completed") == today)
-    completion_pct = (done_habits / total_habits * 100) if total_habits > 0 else 0
-
-    # Resumen de metas
-    goals_summary = []
-    for g in goals:
-        if not g["id"].startswith("w_"):  # Solo metas largas
-            goals_summary.append(f"  📌 {g['title']}: {g['progress']:.1f}% | Nivel {g.get('level', 0)} | {g.get('xp', 0)} XP")
-
-    weekly_summary = []
-    for g in goals:
-        if g["id"].startswith("w_"):  # Solo metas semanales
-            weekly_summary.append(f"  📅 {g['title']}: {g['progress']:.1f}%")
-
-    # Rachas top
-    top_streaks = sorted(habits, key=lambda h: h.get("streak", 0), reverse=True)[:3]
-    streak_lines = [f"  🔥 {h['title']}: {h.get('streak', 0)} días" for h in top_streaks if h.get("streak", 0) > 0]
-
-    summary = f"""╔══════════════════════════════════════╗
-║     📊 RESUMEN DIARIO — {today}     ║
-╚══════════════════════════════════════╝
-
-✅ COMPLETADO HOY ({done_habits}/{total_habits} hábitos — {completion_pct:.0f}%):
-{chr(10).join(completed) if completed else '  (ninguno detectado)'}
-
-⬜ PENDIENTE:
-{chr(10).join(pending) if pending else '  ¡Todo completado! 🎉'}
-
-🎯 PROGRESO DE METAS:
-{chr(10).join(goals_summary) if goals_summary else '  (sin metas)'}
-
-📅 METAS SEMANALES:
-{chr(10).join(weekly_summary) if weekly_summary else '  (sin metas semanales)'}
-"""
-
-    if streak_lines:
-        summary += f"\n🔥 RACHAS ACTIVAS:\n{chr(10).join(streak_lines)}\n"
-
-    if analysis.get("raw_metrics", {}).get("notas_adicionales"):
-        summary += f"\n📝 MÉTRICAS EXTRA:\n  {analysis['raw_metrics']['notas_adicionales']}\n"
-
-    notes = analysis.get("interpretation_notes", "")
-    if notes:
-        summary += f"\n🤖 Interpretación IA: {notes}\n"
-
-    summary += f"\n⏱️  Sincronizado: {_now()}"
-    return summary
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 5. GUARDAR EN OBSIDIAN
-# ══════════════════════════════════════════════════════════════════════════════
-
-def save_to_obsidian(summary: str, completed: list[str], pending: list[str], analysis: dict) -> str:
-    """Guarda el resumen del día en Obsidian."""
-    if not OBSIDIAN_VAULT:
-        return "⚠️  OBSIDIAN_VAULT_PATH no configurado — resumen no guardado"
-
-    vault = Path(OBSIDIAN_VAULT)
-    if not vault.exists():
-        return f"⚠️  Vault no encontrado en: {OBSIDIAN_VAULT}"
-
-    today = _today()
-    # Carpeta: Diario/<año>/<mes>/
-    folder = vault / "Diario" / today[:4] / today[5:7]
-    folder.mkdir(parents=True, exist_ok=True)
-
-    note_path = folder / f"{today} — Resumen Diario.md"
-
-    habits = _load(_HABITS_FILE)
-    goals  = _load(_GOALS_FILE)
-
-    # Formato enriquecido para Obsidian con frontmatter YAML
-    content = f"""---
-date: {today}
-tags: [diario, taskforge, habitos, resumen]
-completados: {sum(1 for h in habits if h.get('last_completed') == today)}
-total_habitos: {len(habits)}
----
-
-# 📊 Resumen Diario — {today}
-
-## ✅ Hábitos Completados
-{"".join(f'- [x] {line.strip().lstrip("✅🔥⏭️ ")}\\n' for line in completed) if completed else "- [ ] (ninguno detectado)\\n"}
-
-## ⬜ Hábitos Pendientes
-{"".join(f'- [ ] {line.strip().lstrip("⬜ ")}\\n' for line in pending) if pending else "- [x] ¡Todo completado! 🎉\\n"}
-
-## 🎯 Progreso de Metas
-"""
-    for g in goals:
-        content += f"- **{g['title']}**: {g['progress']:.1f}% | Nivel {g.get('level', 0)} | {g.get('xp', 0)} XP\n"
-
-    content += "\n## 🤖 Análisis IA\n"
-    content += f"- **Confianza**: {analysis.get('confidence', 'N/A')}\n"
-    content += f"- **Notas**: {analysis.get('interpretation_notes', 'N/A')}\n"
-
-    if analysis.get("raw_metrics", {}).get("notas_adicionales"):
-        content += f"\n## 📝 Métricas Extra\n{analysis['raw_metrics']['notas_adicionales']}\n"
-
-    content += f"\n---\n*Generado automáticamente por wsp_daily_sync — {_now()}*\n"
-
-    note_path.write_text(content, encoding="utf-8")
-    return f"✅ Resumen guardado en Obsidian: {note_path}"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
 # 6. ENVIAR RESUMEN POR WHATSAPP
 # ══════════════════════════════════════════════════════════════════════════════
 
 def send_wsp_message(text: str) -> bool:
     """Envía un mensaje de texto por WhatsApp al número configurado."""
-    import urllib.request, json as _json
 
     # Formato esperado por whatsapp-web.js API (evolution-api / wppconnect / etc.)
     payload = {
@@ -476,7 +361,7 @@ def send_wsp_message(text: str) -> bool:
 
     for url in endpoints_to_try:
         try:
-            body = _json.dumps(payload).encode()
+            body = json.dumps(payload).encode()
             req = urllib.request.Request(
                 url, data=body,
                 headers={"Content-Type": "application/json"},
@@ -486,17 +371,11 @@ def send_wsp_message(text: str) -> bool:
                 if resp.status < 300:
                     print(f"  ✅ Mensaje enviado via {url}")
                     return True
-        except Exception:
-            continue
+        except OSError:
+            continue  # endpoint no disponible: probar el siguiente
 
-    print(f"  ⚠️  No se pudo enviar el mensaje (servidor WSP no disponible)")
+    print("  ⚠️  No se pudo enviar el mensaje (servidor WSP no disponible)")
     return False
-
-
-def build_wsp_summary(summary: str) -> str:
-    """Convierte el resumen detallado a un formato amigable para WhatsApp."""
-    # WhatsApp no tiene markdown, usar emojis y texto plano
-    return summary.replace("╔", "").replace("╚", "").replace("╗", "").replace("╝", "").replace("║", "").replace("═", "").strip()
 
 
 def build_wsp_reply(completed: list[str], pending: list[str]) -> str:

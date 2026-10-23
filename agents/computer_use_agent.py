@@ -15,6 +15,7 @@ from agents.llm import get_llm
 
 CU_PROMPT = """Eres el agente de COMPUTER USE (control local del PC).
 Usa las herramientas con extremo cuidado: clicks y escritura actúan en la máquina real del usuario.
+Si no tienes herramientas de clic/teclado, es porque el control está desactivado por seguridad (AIFORGE_ALLOW_COMPUTER_USE): dilo y limítate a describir la pantalla.
 Antes de acciones destructivas, pide confirmación implícita vía descripción clara.
 Requiere Ollama con modelo de visión (p.ej. llava) para screenshot/detección. Responde en español."""
 
@@ -35,7 +36,7 @@ class ComputerUseAgent(AgentBase):
     def _run(self, user_input: str, context: Dict[str, Any], config: Dict[str, Any] | None) -> str:
         result = self._graph.invoke(
             {"messages": [HumanMessage(content=user_input)]},
-            config=config or {"recursion_limit": 35},
+            config={"recursion_limit": 35, **(config or {})},
         )
         return extract_final_ai_text(result) or "(sin respuesta)"
 

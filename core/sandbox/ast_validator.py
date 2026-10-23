@@ -17,7 +17,7 @@ class ValidationResult:
     def __str__(self) -> str:
         if self.is_safe:
             return "✅ Código validado: seguro."
-        return f"❌ Código bloqueado. Violaciones:\n" + "\n".join(f"  - {v}" for v in self.violations)
+        return "❌ Código bloqueado. Violaciones:\n" + "\n".join(f"  - {v}" for v in self.violations)
 
 
 class ASTValidator:
@@ -80,22 +80,22 @@ class ASTValidator:
 
         return ValidationResult(is_safe=len(violations) == 0, violations=violations)
 
+    def _check_call(self, node: ast.Call) -> list[str]:
+        func = node.func
+        # 1. Llamadas prohibidas modulo.funcion (os.system, subprocess.run, ...)
+        if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+            if (func.value.id, func.attr) in self.BANNED_CALLS:
+                return [f"Llamada prohibida: {func.value.id}.{func.attr}()"]
+        # 2. Built-ins prohibidos directos: eval(), exec(), etc.
+        if isinstance(func, ast.Name) and func.id in self.BANNED_BUILTINS:
+            return [f"Función prohibida: {func.id}()"]
+        return []
+
     def _check_node(self, node: ast.AST) -> list[str]:
         violations: list[str] = []
 
-        # 1. Detectar llamadas a funciones prohibidas (modulo.funcion)
         if isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Attribute):
-                if isinstance(node.func.value, ast.Name):
-                    pair = (node.func.value.id, node.func.attr)
-                    if pair in self.BANNED_CALLS:
-                        violations.append(f"Llamada prohibida: {pair[0]}.{pair[1]}()")
-
-        # 2. Detectar funciones built-in prohibidas directas: eval(), exec(), etc.
-        if isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Name):
-                if node.func.id in self.BANNED_BUILTINS:
-                    violations.append(f"Función prohibida: {node.func.id}()")
+            violations.extend(self._check_call(node))
 
         # 3. Detectar acceso a atributos dunder peligrosos
         if isinstance(node, ast.Attribute):

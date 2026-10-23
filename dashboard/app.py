@@ -11,7 +11,6 @@ import asyncio
 import shutil
 import subprocess
 import sys
-import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 

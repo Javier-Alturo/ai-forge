@@ -13,7 +13,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = _ROOT / "data"
 LEGACY_JSON = _ROOT / "memory_store.json"
 
-from agents.chroma_client import CHROMA_DIR, get_chroma_client  # noqa: E402
+from agents.chroma_client import get_chroma_client  # noqa: E402
 
 _EMBED_MODEL = os.environ.get("MEMORY_EMBED_MODEL", "all-MiniLM-L6-v2")
 _COLLECTION_NAME = "memory_items"

@@ -1,8 +1,5 @@
 """Módulo de Scraping B2B dinámico usando Playwright y Beautifulsoup."""
-import json
-import os
 import random
-import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -10,32 +7,25 @@ from pathlib import Path
 import httpx
 from bs4 import BeautifulSoup
 
-DATA_DIR = Path("data")
+from agents.logger import get_logger
+from core.json_store import load_json_list, save_json_atomic
+
+log = get_logger("lead_scraper")
+
+# Relativo al repo (antes Path("data") dependía del directorio de trabajo)
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 LEADS_DB = DATA_DIR / "marketing_leads_db.json"
 SESSION_DIR = DATA_DIR / "browser_sessions"
 
 def _load_db() -> set[str]:
-    if not LEADS_DB.exists():
-        return set()
-    try:
-        with open(LEADS_DB, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return set(d.get("url") for d in data if "url" in d)
-    except:
-        return set()
+    return {d["url"] for d in load_json_list(LEADS_DB) if isinstance(d, dict) and "url" in d}
+
 
 def _save_to_db(lead: dict):
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    data = []
-    if LEADS_DB.exists():
-        try:
-            with open(LEADS_DB, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except:
-            pass
+    # load_json_list respalda un archivo corrupto en vez de sobrescribirlo con un solo lead
+    data = load_json_list(LEADS_DB)
     data.append(lead)
-    with open(LEADS_DB, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    save_json_atomic(LEADS_DB, data)
 
 def _is_valid_lead(title: str, description: str) -> bool:
     text = f"{title} {description}".lower()
@@ -66,7 +56,6 @@ def scrape_upwork(query: str, headless: bool = True) -> list[dict]:
     Busca trabajos en Upwork usando DuckDuckGo como intermediario para evitar el bloqueo de Cloudflare.
     Estrategia: 'site:upwork.com/jobs <query>' en DuckDuckGo extrae URLs y snippets reales.
     """
-    import httpx
     from urllib.parse import quote_plus
 
     leads = []
@@ -75,8 +64,8 @@ def scrape_upwork(query: str, headless: bool = True) -> list[dict]:
     # Construir queries de busqueda orientadas a Upwork via DuckDuckGo
     search_variants = [
         f'site:upwork.com/jobs "{query}"',
-        f'site:upwork.com/jobs n8n automation langraph',
-        f'site:upwork.com/jobs "ai agent" OR "automation" python',
+        'site:upwork.com/jobs n8n automation langraph',
+        'site:upwork.com/jobs "ai agent" OR "automation" python',
     ]
 
     headers = {
@@ -125,13 +114,15 @@ def scrape_upwork(query: str, headless: bool = True) -> list[dict]:
                     seen.add(href)
                     _save_to_db(lead)
 
-        except Exception as e:
+        except (httpx.HTTPError, ValueError, KeyError) as e:
             print(f"[Lead Scraper] Upwork via DuckDuckGo error: {e}")
 
     return leads
 
 def scrape_linkedin(query: str, headless: bool = True) -> list[dict]:
     try:
+        from playwright.sync_api import Error as PlaywrightError
+        from playwright.sync_api import TimeoutError as PlaywrightTimeout
         from playwright.sync_api import sync_playwright
     except ImportError:
         return []
@@ -154,8 +145,8 @@ def scrape_linkedin(query: str, headless: bool = True) -> list[dict]:
                 # Da tiempo al usuario (hasta 2 minutos) para resolver captchas y que carguen los resultados
                 try:
                     page.wait_for_selector('div.job-search-card, li.jobs-search-results__list-item', timeout=120000)
-                except Exception:
-                    pass
+                except PlaywrightTimeout:
+                    log.info("LinkedIn: no aparecieron resultados en 2 min; se continúa con lo cargado")
                     
             _anti_bot_delay()
             page.mouse.wheel(0, 2000)
@@ -191,7 +182,7 @@ def scrape_linkedin(query: str, headless: bool = True) -> list[dict]:
                     leads.append(lead)
                     seen.add(href)
                     _save_to_db(lead)
-        except Exception as e:
+        except PlaywrightError as e:
             print(f"[Lead Scraper] LinkedIn error: {e}")
         finally:
             context.close()
@@ -261,7 +252,7 @@ def scrape_reddit(query: str) -> list[dict]:
                     leads.append(lead)
                     seen.add(href)
                     _save_to_db(lead)
-        except Exception as e:
+        except (httpx.HTTPError, ValueError, KeyError, TypeError) as e:
             print(f"[Lead Scraper] Reddit search error for '{q}': {e}")
     
     # 2. Tambien revisar r/forhire con [Hiring] recientes
@@ -291,7 +282,7 @@ def scrape_reddit(query: str) -> list[dict]:
                 leads.append(lead)
                 seen.add(href)
                 _save_to_db(lead)
-    except Exception as e:
+    except (httpx.HTTPError, ValueError, KeyError, TypeError) as e:
         print(f"[Lead Scraper] Reddit r/forhire error: {e}")
         
     return leads

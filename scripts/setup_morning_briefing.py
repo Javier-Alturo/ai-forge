@@ -84,7 +84,7 @@ def register_task_scheduler():
             print("-" * 80)
             print(ps_command)
             print("-" * 80)
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:
         print(f"❌ Error al ejecutar PowerShell: {e}")
 
 def main():

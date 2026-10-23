@@ -1,0 +1,27 @@
+// Generic RAG eval over evals/datasets/rag_docs/ (fictional documents).
+// "expected": every string must appear in the answer (case/accent-insensitive). "answerable": false -> the system must abstain.
+{"question": "¿En qué año se fundó Órbita Café?", "expected": ["2015"]}
+{"question": "¿En qué ciudad se fundó Órbita Café?", "expected": ["manizales"]}
+{"question": "¿Cuántos empleados tiene Órbita Café?", "expected": ["12"]}
+{"question": "¿Qué día de la semana cierra Órbita Café?", "expected": ["lunes"]}
+{"question": "¿Qué día se tuesta el café en Órbita Café?", "expected": ["miercoles"]}
+{"question": "¿Cuántos gramos tiene la bolsa de Geisha más vendida?", "expected": ["340"]}
+{"question": "¿Cuántos cafés hay que comprar en Órbita Café para recibir uno gratis?", "expected": ["10"]}
+{"question": "¿Qué base de datos usa el proyecto Atlas?", "expected": ["postgresql"]}
+{"question": "¿Qué versión de Python usa Atlas?", "expected": ["3.12"]}
+{"question": "¿Cuál es el TTL de la caché de búsquedas en Atlas?", "expected": ["15"]}
+{"question": "¿Quién es el líder técnico del proyecto Atlas?", "expected": ["mateo gil"]}
+{"question": "¿Cuándo se desplegó la versión 2.0 de Atlas?", "expected": ["3 de marzo"]}
+{"question": "¿Cuál es el SLO de latencia del endpoint de búsqueda de Atlas?", "expected": ["300"]}
+{"question": "¿Cuántos días de vacaciones al año tiene un empleado de Acme Labs?", "expected": ["18"]}
+{"question": "¿Con cuánta anticipación se deben pedir las vacaciones en Acme Labs?", "expected": ["15"]}
+{"question": "¿Cuántos días de vacaciones se pueden acumular para el año siguiente?", "expected": ["5"]}
+{"question": "¿Qué días se permite trabajar desde casa en Acme Labs?", "expected": ["martes", "jueves"]}
+{"question": "¿Cuánta harina de maíz lleva la receta de arepas de queso?", "expected": ["500"]}
+{"question": "¿Cuánto tiempo se cocina cada lado de la arepa?", "expected": ["6 minutos"]}
+{"question": "¿Cuánto queso lleva la receta de arepas?", "expected": ["200"]}
+{"question": "¿Cuál es el salario del líder técnico de Atlas?", "answerable": false}
+{"question": "¿Quién es el CEO de Acme Labs?", "answerable": false}
+{"question": "¿Cuántas calorías tiene una arepa de queso de la receta?", "answerable": false}
+{"question": "¿Órbita Café hace envíos a domicilio a Bogotá?", "answerable": false}
+{"question": "¿Qué versión de Redis usa el proyecto Atlas?", "answerable": false}

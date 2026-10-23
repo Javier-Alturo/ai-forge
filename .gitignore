@@ -66,10 +66,36 @@ mcp_error.log
 
 # Sesiones de WhatsApp Web
 data/whatsapp_session/
-data/whatsapp_session_old_*/
-data/whatsapp_session_dftech_*/
+data/whatsapp_session_*/
 data/wsp_listener_state.json
 
 # Logs de ejecucion
 data/logs/
 
+
+# Aprobaciones pendientes de git (push/merge) del MCP agent
+data/git_approvals/
+
+# Credenciales y sesiones (patrones amplios: cubren copias con fecha)
+credentials*.json
+client_secret*.json
+token*.json
+*.pem
+*.key
+*.p12
+data/whatsapp_session*/
+data/wsp_listener_state.json
+*.log
+
+# Config local de MCP (contiene rutas absolutas de la máquina); usar mcp_servers.example.json
+mcp_servers.json
+
+# Carpeta de trabajo por defecto del File Agent (core/fs_policy.py)
+data/agent_workspace/
+
+# Evals: datos reales del usuario y resultados locales (nunca se versionan)
+evals/private/
+evals/results/
+
+# LangFuse local: secretos generados por observability/setup_env.py
+observability/.env

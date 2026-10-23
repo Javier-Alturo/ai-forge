@@ -12,9 +12,12 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool
 
 from agents.a2a_log import a2a_log
+from agents.logger import get_logger
 from agents.chroma_memory import add_embedding_note
 from agents.llm import get_llm
 from agents.web_search import search_web
+
+log = get_logger("marketing")
 
 
 def _utc_now_iso() -> str:
@@ -191,7 +194,8 @@ def _score_lead(title: str, description: str) -> int:
         import re
         match = re.search(r'\d+', text)
         return int(match.group()) if match else 5
-    except:
+    except Exception:
+        log.exception("Lead scoring con LLM falló; usando score neutro 5")
         return 5
 
 @tool
@@ -253,6 +257,7 @@ def marketing_scrape_leads(
         if past_context:
             a2a_log("marketing", "chromadb", "rag_past_leads", f"Encontré {len(past_leads)} leads previos similares")
     except Exception:
+        log.exception("Búsqueda de leads previos en ChromaDB falló")
         past_context = ""
     
     leads = scrape_all(q, platforms, headless=headless)
@@ -324,6 +329,7 @@ def marketing_search_past_leads(query: str, top_k: int = 5) -> str:
             output.append(f"📋 {content[:400]}\n---")
         return f"Leads anteriores encontrados ({len(results)}):\n\n" + "\n".join(output)
     except Exception as e:
+        log.exception("Búsqueda de leads anteriores falló")
         return f"Error buscando leads anteriores: {e}"
 
 

@@ -7,13 +7,14 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from langchain_core.tools import tool
 
 from agents.a2a_log import a2a_log
+from core.json_store import load_json, save_json_atomic
 
 _ROOT = Path(__file__).resolve().parent.parent
 _FITNESS_DIR = _ROOT / "data" / "fitness"
@@ -33,17 +34,12 @@ def _utc_now_iso() -> str:
 
 
 def _load_json(path: Path, default: Any) -> Any:
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        return default
-    except json.JSONDecodeError:
-        return default
+    # Un JSON corrupto se respalda (antes devolvía default y el siguiente guardado lo sobrescribía)
+    return load_json(path, default)
 
 
 def _save_json(path: Path, data: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    save_json_atomic(path, data)
 
 
 def _parse_yyyy_mm_dd(s: str) -> date | None:
@@ -149,7 +145,7 @@ def fitness_log_session(
         return "Fecha inválida. Usa formato YYYY-MM-DD."
 
     sess = {
-        "athlete": "user",
+        "athlete": _get_profile().get("name", ""),
         "date": d.isoformat(),
         "split": split,
         "focus": focus,
@@ -195,6 +191,27 @@ def _update_prs_from_entries(entries: list[dict], session_date: str) -> None:
     _save_json(_PRS_PATH, current)
 
 
+def _session_matches(sess: dict, muscle_q: str, ex_q: str) -> bool:
+    """True si la sesión contiene un ejercicio cuyo nombre o músculos coinciden con el filtro."""
+    if not (muscle_q or ex_q):
+        return True
+    for ex in sess.get("exercises") or []:
+        if not isinstance(ex, dict):
+            continue
+        if ex_q and ex_q in str(ex.get("name", "")).lower():
+            return True
+        muscles = [str(m).lower() for m in (ex.get("muscles") or []) if m]
+        if muscle_q and any(muscle_q in m for m in muscles):
+            return True
+    return False
+
+
+def _dates_in_range(start: date | None, end: date | None) -> list[date]:
+    """Fechas con sesión dentro del rango, más recientes primero."""
+    dates = [d for d in _list_session_dates() if (not start or d >= start) and (not end or d <= end)]
+    return list(reversed(dates))
+
+
 @tool
 def fitness_get_history(
     start_date: str | None = None,
@@ -210,41 +227,35 @@ def fitness_get_history(
     muscle_q = (muscle or "").strip().lower()
     ex_q = (exercise_query or "").strip().lower()
 
-    dates = _list_session_dates()
-    if sd:
-        dates = [d for d in dates if d >= sd]
-    if ed:
-        dates = [d for d in dates if d <= ed]
-    dates = list(reversed(dates))  # más recientes primero
-
     out: list[str] = []
-    count = 0
-    for d in dates:
+    for d in _dates_in_range(sd, ed):
         sess = _load_json(_session_path_for(d), default={})
-        if not isinstance(sess, dict):
+        if not isinstance(sess, dict) or not _session_matches(sess, muscle_q, ex_q):
             continue
-        if muscle_q or ex_q:
-            hits = False
-            for ex in (sess.get("exercises") or []):
-                if not isinstance(ex, dict):
-                    continue
-                name = str(ex.get("name", "")).lower()
-                muscles = [str(m).lower() for m in (ex.get("muscles") or []) if m]
-                if ex_q and ex_q in name:
-                    hits = True
-                if muscle_q and any(muscle_q in m for m in muscles):
-                    hits = True
-            if not hits:
-                continue
-
         out.append(f"- {sess.get('date')} | {sess.get('split')} {sess.get('focus')} | notas: {str(sess.get('notes',''))[:120]}")
-        count += 1
-        if count >= int(limit):
+        if len(out) >= int(limit):
             break
+    return "\n".join(out) if out else "No hay sesiones que coincidan con el filtro."
 
-    if not out:
-        return "No hay sesiones que coincidan con el filtro."
-    return "\n".join(out)
+
+def _to_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _pr_suggestion(ex: str, pr: dict) -> str:
+    """Heurística: subir carga si el último PR fue con RIR<=2; si no, consolidar reps/técnica."""
+    unit = str(pr.get("unit") or "").lower()
+    reps = _to_float(pr.get("reps"))
+    rir = _to_float(pr.get("rir"))
+    inc = 5.0 if "lb" in unit else 2.5
+    if reps is not None and reps >= 10 and "kg" in unit:
+        inc = 2.0
+    if rir is not None and rir <= 2.0:
+        return f"- {ex}: prueba +{inc:g}{pr.get('unit') or ''} la próxima vez (manteniendo RIR~1-2)."
+    return f"- {ex}: repite carga y busca mejorar reps/técnica antes de subir."
 
 
 @tool
@@ -254,50 +265,19 @@ def fitness_check_prs() -> str:
     prs = _load_json(_PRS_PATH, default={})
     if not isinstance(prs, dict) or not prs:
         return "No hay PRs registrados aún."
+    valid = {ex: pr for ex, pr in prs.items() if isinstance(pr, dict)}
+
+    lines = ["PRs actuales:"]
+    lines += [
+        f"- {ex}: {pr.get('load')}{pr.get('unit') or ''}×{pr.get('reps')} @RIR{pr.get('rir')} ({pr.get('date') or ''})"
+        for ex, pr in valid.items()
+    ]
+    lines += ["", "Sugerencias de progresión (heurística):"]
+    lines += [_pr_suggestion(ex, pr) for ex, pr in valid.items()]
 
     last_dates = _list_session_dates()
-    last_date = last_dates[-1].isoformat() if last_dates else None
-
-    lines: list[str] = ["PRs actuales:"]
-    for ex, pr in prs.items():
-        if not isinstance(pr, dict):
-            continue
-        load = pr.get("load")
-        unit = pr.get("unit") or ""
-        reps = pr.get("reps")
-        rir = pr.get("rir")
-        d = pr.get("date") or ""
-        lines.append(f"- {ex}: {load}{unit}×{reps} @RIR{rir} ({d})")
-
-    lines.append("")
-    lines.append("Sugerencias de progresión (heurística):")
-    for ex, pr in prs.items():
-        if not isinstance(pr, dict):
-            continue
-        unit = str(pr.get("unit") or "").lower()
-        try:
-            reps = float(pr.get("reps"))
-        except Exception:
-            reps = None
-        try:
-            rir = float(pr.get("rir"))
-        except Exception:
-            rir = None
-        inc = 2.5
-        if "lb" in unit:
-            inc = 5.0
-        elif "kg" in unit or unit == "":
-            inc = 2.5
-        if reps is not None and reps >= 10:
-            inc = 2.0 if "kg" in unit else inc
-        if rir is not None and rir <= 2.0:
-            lines.append(f"- {ex}: prueba +{inc:g}{pr.get('unit') or ''} la próxima vez (manteniendo RIR~1-2).")
-        else:
-            lines.append(f"- {ex}: repite carga y busca mejorar reps/técnica antes de subir.")
-
-    if last_date:
-        lines.append("")
-        lines.append(f"Última sesión registrada: {last_date}")
+    if last_dates:
+        lines += ["", f"Última sesión registrada: {last_dates[-1].isoformat()}"]
     return "\n".join(lines).strip()
 
 
@@ -342,91 +322,9 @@ def fitness_injury_log(
     return "Molestia registrada."
 
 
-@tool
-def fitness_weekly_report(week_ending: str | None = None) -> str:
-    """Reporte semanal de volumen, PRs, lesiones, progresiones."""
-    _ensure_dirs()
-    end = _parse_yyyy_mm_dd(week_ending or "") if week_ending else date.today()
-    if not end:
-        end = date.today()
-    start = end - timedelta(days=6)
-
-    # Sesiones
-    dates = [d for d in _list_session_dates() if start <= d <= end]
-    sessions: list[dict[str, Any]] = []
-    for d in dates:
-        s = _load_json(_session_path_for(d), default={})
-        if isinstance(s, dict):
-            sessions.append(s)
-
-    # Volumen por músculo (sets)
-    sets_by_muscle: dict[str, int] = {}
-    prs_hit: list[str] = []
-    for s in sessions:
-        for ex in (s.get("exercises") or []):
-            if not isinstance(ex, dict):
-                continue
-            muscles = ex.get("muscles") or []
-            n_sets = len(ex.get("sets") or [])
-            for m in muscles:
-                key = str(m).strip().lower()
-                if not key:
-                    continue
-                sets_by_muscle[key] = sets_by_muscle.get(key, 0) + n_sets
-        for pr in (s.get("prs") or []):
-            if isinstance(pr, dict):
-                prs_hit.append(f"{pr.get('exercise') or pr.get('name')}: {pr.get('load')}{pr.get('unit','')}×{pr.get('reps')} @RIR{pr.get('rir')}")
-
-    injuries = _load_json(_INJURIES_PATH, default=[])
-    if not isinstance(injuries, list):
-        injuries = []
-    injuries_week = [
-        i
-        for i in injuries
-        if isinstance(i, dict)
-        and (d := _parse_yyyy_mm_dd(str(i.get("date", "")))) is not None
-        and start <= d <= end
-    ]
-
-    lines: list[str] = [
-        f"Reporte semanal ({start.isoformat()} → {end.isoformat()}):",
-        f"- Sesiones: {len(sessions)}",
-    ]
-    if sessions:
-        lines.append("- Detalle sesiones:")
-        for s in sessions:
-            lines.append(f"  - {s.get('date')} | {s.get('split')} {s.get('focus')}")
-
-    lines.append("")
-    lines.append("Volumen (sets por músculo, según tags en ejercicios):")
-    if not sets_by_muscle:
-        lines.append("- (Sin datos de músculos/sets; añade 'muscles' en exercises para reportes mejores.)")
-    else:
-        for m, n in sorted(sets_by_muscle.items(), key=lambda kv: (-kv[1], kv[0])):
-            lines.append(f"- {m}: {n} sets")
-
-    lines.append("")
-    lines.append("PRs de la semana:")
-    lines += [f"- {x}" for x in prs_hit[:60]] if prs_hit else ["- (Ninguno registrado)"]
-
-    lines.append("")
-    lines.append("Lesiones/molestias de la semana:")
-    if not injuries_week:
-        lines.append("- (Sin registros)")
-    else:
-        for i in injuries_week[-30:]:
-            lines.append(
-                f"- {i.get('date')} | {i.get('zone')} {i.get('intensity_0_10')}/10 | causa: {i.get('caused_by_exercise') or '-'}"
-            )
-
-    lines.append("")
-    lines.append("Progresión sugerida:")
-    lines.append("- Revisa `fitness_check_prs` y prioriza incrementos pequeños si RIR<=2.")
-    lines.append("- Si aparece molestia, reduce rango/volumen y cambia variantes 1-2 semanas.")
-    return "\n".join(lines).strip()
-
-
 def get_fitness_tools():
+    from agents.fitness_report import fitness_weekly_report  # import diferido: fitness_report importa este módulo
+
     return [
         fitness_log_session,
         fitness_get_history,

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import base64
-from email.message import EmailMessage
 
 from googleapiclient.discovery import build
 from langchain_core.tools import tool
@@ -49,26 +47,6 @@ def email_list_recent(max_results: int = 10) -> str:
 
 
 @tool
-def email_send(to_address: str, subject: str, body: str, body_type: str = "plain") -> str:
-    """Envía un email. to_address: destinatario. body_type: 'plain' o 'html'."""
-    a2a_log("email", "gmail", "send", to_address[:120])
-    svc, err = _gmail_service()
-    if err:
-        return err
-    assert svc is not None
-    msg = EmailMessage()
-    msg["To"] = to_address
-    msg["Subject"] = subject
-    if body_type.lower() == "html":
-        msg.add_alternative(body, subtype="html")
-    else:
-        msg.set_content(body)
-    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
-    sent = svc.users().messages().send(userId="me", body={"raw": raw}).execute()
-    return f"Enviado. id={sent.get('id')}"
-
-
-@tool
 def email_search(gmail_query: str, max_results: int = 15) -> str:
     """
     Busca emails con sintaxis Gmail (p.ej. from:foo subject:bar is:unread).
@@ -95,4 +73,4 @@ def email_search(gmail_query: str, max_results: int = 15) -> str:
 
 
 def get_email_tools():
-    return [email_list_recent, email_send, email_search]
+    return [email_list_recent, email_search]

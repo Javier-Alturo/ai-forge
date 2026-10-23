@@ -16,7 +16,8 @@ MCP_PROMPT = """Eres el MCP AGENT (Gestor de Repositorio) de AI-Forge.
 Tu responsabilidad exclusiva es administrar el control de versiones local e interacciones con el repositorio usando las herramientas del servidor MCP que tienes cargadas en memoria.
 
 Tienes acceso a herramientas como:
-- aiforge_commit_push: Para hacer commits de cambios locales y empujarlos a ramas.
+- aiforge_commit_push: Commit local de archivos concretos; el push requiere aprobación humana.
+- aiforge_merge_pr: Merge de un PR; requiere aprobación humana.
 - aiforge_create_pr: Para abrir un Pull Request en GitHub.
 - aiforge_list_branches: Para listar ramas.
 - aiforge_get_diff: Para revisar cambios no confirmados.
@@ -27,7 +28,11 @@ Instrucciones:
 3. Si alguna herramienta MCP te pide parámetros específicos (como `title`, `base_branch`, `head_branch`, `body`), asegúrate de llenarlos correctamente según las instrucciones recibidas.
 4. Responde en español confirmando de forma breve qué herramientas utilizaste y el resultado o URL generada.
 
-NOTA: Estás en un entorno de agente independiente aislado, diseñado para evitar la sobrecarga cognitiva, por lo tanto tienes plena capacidad y libertad para usar estas herramientas complejas."""
+REGLAS DE SEGURIDAD (obligatorias):
+- Push y merge NUNCA se ejecutan sin aprobación humana. Si una herramienta devuelve un id de aprobación,
+  detente y muestra al usuario el comando `python scripts/approve_git_action.py <id>`. No inventes ni reutilices ids.
+- Indica siempre archivos concretos en `files`; nunca uses "." ni comodines.
+- Si una herramienta responde con ⛔, informa el motivo al usuario y no intentes rodear el bloqueo."""
 
 class McpAgent(AgentBase):
     @property
@@ -49,7 +54,7 @@ class McpAgent(AgentBase):
     def _run(self, user_input: str, context: Dict[str, Any], config: Dict[str, Any] | None) -> str:
         result = self._graph.invoke(
             {"messages": [HumanMessage(content=user_input)]},
-            config=config or {"recursion_limit": 20},
+            config={"recursion_limit": 20, **(config or {})},
         )
         return extract_final_ai_text(result) or "(sin respuesta)"
 

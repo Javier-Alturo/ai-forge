@@ -64,7 +64,6 @@ class TestCircuitBreaker:
 
     def test_context_overflow_triggers_fallback(self, router):
         """Prompt demasiado largo (> max_local_context) debe pedir fallback."""
-        from core.model_router import FallbackReason
         with pytest.raises(RuntimeError, match="cloud_fallback"):
             router.get_model(prompt_token_count=99999)
 
@@ -214,7 +213,7 @@ class TestAgentBaseWithRouter:
     def test_get_llm_with_router(self, success_agent, mock_router):
         """get_llm() con router debe llamar get_model() del router."""
         mock_router.get_model.return_value = (MagicMock(), None)
-        llm = success_agent.get_llm("mi prompt de prueba")
+        success_agent.get_llm("mi prompt de prueba")
         mock_router.get_model.assert_called_once()
 
     def test_get_llm_without_router(self):
@@ -230,7 +229,7 @@ class TestAgentBaseWithRouter:
 
         agent = NoRouterAgent(config={})
         with patch("agents.llm.get_llm", return_value=MagicMock()) as mock_get_llm:
-            llm = agent.get_llm("test")
+            agent.get_llm("test")
             mock_get_llm.assert_called_once()
 
     def test_estimate_tokens_basic(self, success_agent):

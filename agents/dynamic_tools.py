@@ -24,7 +24,7 @@ def get_weather_bogota():
     """
     import requests
     url = 'https://wttr.in/Bogota?format=3'
-    response = requests.get(url)
+    response = requests.get(url, timeout=10)
     return response.text.strip()
 
 

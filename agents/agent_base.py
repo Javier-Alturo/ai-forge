@@ -128,6 +128,8 @@ class AgentBase(ABC):
                 logger.debug(f"[{self.name}][{trace_id}] report_success() → CB")
 
         except Exception as e:
+            # Frontera del agente: cualquier fallo se convierte en AgentResult(status="error")
+            logger.exception(f"[{self.name}][{trace_id}] agent run failed")
             status = "error"
             result_data = ""
             error = str(e)

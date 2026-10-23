@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -30,26 +31,34 @@ def get_llm(temperature: float = 0.15) -> BaseChatModel:
     """
     Devuelve el chat model según LLM_PROVIDER:
     - local (default): ChatOllama
-    - cloud: ChatAnthropic (requiere ANTHROPIC_API_KEY)
+    - cloud: ChatAnthropic (requiere ANTHROPIC_API_KEY y AIFORGE_ALLOW_CLOUD=1)
+
+    Los clientes se reutilizan (uno por proveedor/modelo/temperatura) en vez de crear
+    uno nuevo, con su propio pool de conexiones HTTP, en cada llamada.
     """
     if LLM_PROVIDER == "cloud":
-        from langchain_anthropic import ChatAnthropic
+        from core.cloud_policy import require_cloud_allowed
 
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise RuntimeError(
-                "LLM_PROVIDER=cloud requiere ANTHROPIC_API_KEY (variable de entorno o archivo .env)."
-            )
-        return ChatAnthropic(
-            model=ANTHROPIC_MODEL,
-            api_key=api_key,
-            temperature=temperature,
+        # El interruptor se verifica en cada llamada, también cuando el cliente ya está en caché.
+        require_cloud_allowed("LLM_PROVIDER=cloud")
+        return _cloud_llm(ANTHROPIC_MODEL, round(float(temperature), 3))
+    return _local_llm(OLLAMA_MODEL, OLLAMA_BASE, round(float(temperature), 3))
+
+
+@lru_cache(maxsize=16)
+def _cloud_llm(model: str, temperature: float) -> BaseChatModel:
+    from langchain_anthropic import ChatAnthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "LLM_PROVIDER=cloud requiere ANTHROPIC_API_KEY (variable de entorno o archivo .env)."
         )
+    return ChatAnthropic(model=model, api_key=api_key, temperature=temperature)
 
+
+@lru_cache(maxsize=16)
+def _local_llm(model: str, base_url: str, temperature: float) -> BaseChatModel:
     from langchain_ollama import ChatOllama
 
-    return ChatOllama(
-        model=OLLAMA_MODEL,
-        base_url=OLLAMA_BASE,
-        temperature=temperature,
-    )
+    return ChatOllama(model=model, base_url=base_url, temperature=temperature)

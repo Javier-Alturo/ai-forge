@@ -9,10 +9,20 @@ from langchain_core.tools import tool
 
 from agents.a2a_log import a2a_log
 from agents.chroma_client import CHROMA_DIR, get_chroma_client
+from agents.logger import get_logger
+
+log = get_logger("rag")
 
 _ROOT = Path(os.environ.get("_AI_FORGE_ROOT", str(Path(__file__).resolve().parent.parent)))
 DOC_DIR = _ROOT / "data" / "documents"
 RAG_COLLECTION = "rag_chunks"
+
+try:  # chromadb >= 0.6 lanza NotFoundError; versiones anteriores, ValueError
+    from chromadb.errors import NotFoundError as _ChromaNotFound
+
+    _COLLECTION_MISSING: tuple[type[Exception], ...] = (ValueError, _ChromaNotFound)
+except ImportError:
+    _COLLECTION_MISSING = (ValueError,)
 _EMBED = os.environ.get("MEMORY_EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 OBSIDIAN_COLLECTION = "obsidian_knowledge"
 OBSIDIAN_VAULT = Path(os.environ.get("OBSIDIAN_VAULT_PATH", ""))
@@ -58,8 +68,9 @@ def _settings() -> None:
             base_url=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
             request_timeout=120.0,
         )
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception:
+        # Sin LLM configurado el índice sigue funcionando para recuperar fragmentos.
+        log.exception("No se pudo configurar Ollama como LLM de LlamaIndex")
 
 
     _settings_initialized = True
@@ -145,10 +156,8 @@ def rag_add_document(filename: str, content: str) -> str:
 def rag_list_indexed(max_rows: int = 50) -> str:
     """Lista ids/metadatos de fragmentos en la colección RAG de Chroma."""
     a2a_log("rag", "chromadb", "list_indexed", RAG_COLLECTION)
-    import chromadb
-
     _ensure_dirs()
-    client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+    client = get_chroma_client()
     try:
         coll = client.get_collection(RAG_COLLECTION)
     except Exception as exc:  # noqa: BLE001
@@ -170,7 +179,6 @@ def rag_index_obsidian_vault() -> str:
     a2a_log("rag", "llamaindex", "index_obsidian", str(OBSIDIAN_VAULT))
     try:
         from llama_index.core import SimpleDirectoryReader, StorageContext, VectorStoreIndex
-        import chromadb
         from llama_index.vector_stores.chroma import ChromaVectorStore
     except ImportError as exc:
         return f"LlamaIndex no instalado: {exc}"
@@ -213,7 +221,7 @@ def rag_query_obsidian(question: str) -> str:
     client = get_chroma_client()
     try:
         coll = client.get_collection(OBSIDIAN_COLLECTION)
-    except Exception:  # chromadb raises different errors depending on version
+    except _COLLECTION_MISSING:  # chromadb lanza errores distintos según la versión
         return "El vault de Obsidian no esta indexado aun. Ejecuta primero rag_index_obsidian_vault."
     vs = ChromaVectorStore(chroma_collection=coll)
     try:
@@ -228,6 +236,7 @@ def rag_query_obsidian(question: str) -> str:
             return "No se encontraron notas de Obsidian lo suficientemente relevantes para responder a tu pregunta."
         return str(resp)
     except Exception as exc:
+        log.exception("Obsidian RAG query failed")
         return f"Error consultando Obsidian RAG: {exc}"
 
 

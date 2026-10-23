@@ -19,15 +19,23 @@ import time
 from datetime import date, datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from agents.a2a_log import a2a_log
+from agents.logger import get_logger
+from agents.taskforge_store import _load
+
+log = get_logger("reminder")
 
 # ── Configuracion ─────────────────────────────────────────────────────────────
 _ROOT          = Path(__file__).resolve().parent.parent
 _TASKS_FILE    = _ROOT / "data" / "taskforge" / "tasks.json"
 _REMINDED_FILE = _ROOT / "data" / "taskforge" / "reminded.json"
 
-# Numero de WhatsApp destino, formato internacional sin '+' (ej. 573001234567)
-WHATSAPP_NUMBER = os.environ.get("WSP_SYNC_NUMBER", "")
+load_dotenv(_ROOT / ".env")
+
+# Numero de WhatsApp destino (con indicativo, sin "+"). Se configura en .env, nunca en el codigo.
+WHATSAPP_NUMBER = os.getenv("WSP_REMINDER_NUMBER") or os.getenv("WSP_SYNC_NUMBER", "")
 
 # Cuantos segundos entre cada revision
 CHECK_INTERVAL_SECONDS = 60
@@ -36,10 +44,18 @@ CHECK_INTERVAL_SECONDS = 60
 TOLERANCE_MINUTES = 1
 
 
+def mask_number(number: str) -> str:
+    """Oculta un teléfono en logs: deja solo los 4 últimos dígitos."""
+    return f"***{number[-4:]}" if len(number) > 4 else "***"
+
+
 # ── WhatsApp sender ───────────────────────────────────────────────────────────
 
 def _send_whatsapp(message: str) -> bool:
     """Envia un mensaje de WhatsApp usando Playwright (sesion persistente)."""
+    if not WHATSAPP_NUMBER:
+        a2a_log("reminder", "whatsapp", "error", "WSP_REMINDER_NUMBER no configurado en .env")
+        return False
     try:
         from playwright.sync_api import sync_playwright
         import urllib.parse
@@ -73,7 +89,8 @@ def _send_whatsapp(message: str) -> bool:
         a2a_log("reminder", "whatsapp", "sent", message[:80])
         return True
 
-    except Exception as e:
+    except Exception as e:  # Playwright lanza varios tipos de error (timeout, navegación, sesión)
+        log.exception("Envío de recordatorio por WhatsApp falló")
         a2a_log("reminder", "whatsapp", "error", str(e)[:120])
         return False
 
@@ -81,12 +98,8 @@ def _send_whatsapp(message: str) -> bool:
 # ── Logica de recordatorios ───────────────────────────────────────────────────
 
 def _load_tasks() -> list:
-    if not _TASKS_FILE.exists():
-        return []
-    try:
-        return json.loads(_TASKS_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        return []
+    # Reusa el loader de TaskForge (respalda archivos corruptos en vez de perderlos)
+    return _load(_TASKS_FILE)
 
 
 def _load_reminded() -> set:
@@ -95,7 +108,8 @@ def _load_reminded() -> set:
     try:
         data = json.loads(_REMINDED_FILE.read_text(encoding="utf-8"))
         return set(data)
-    except Exception:
+    except (OSError, ValueError, TypeError):
+        log.warning("reminded.json ilegible; se reinicia", exc_info=True)
         return set()
 
 
@@ -136,7 +150,7 @@ def _check_and_send() -> None:
             prio_emoji = {"high": "URGENTE", "medium": "importante", "low": ""}.get(
                 task.get("priority", "medium"), ""
             )
-            msg_parts = [f"Recordatorio AI-Forge"]
+            msg_parts = ["Recordatorio AI-Forge"]
             if prio_emoji:
                 msg_parts.append(f"[{prio_emoji}]")
             msg_parts.append(f"\n\n{task['title']}")
@@ -158,13 +172,14 @@ def _check_and_send() -> None:
 
 def _reminder_loop() -> None:
     """Loop principal del daemon. Corre indefinidamente cada 60 segundos."""
-    print(f"[ReminderAgent] Daemon iniciado. Revisando cada {CHECK_INTERVAL_SECONDS}s -> {WHATSAPP_NUMBER}")
-    a2a_log("reminder", "daemon", "started", WHATSAPP_NUMBER)
+    print(f"[ReminderAgent] Daemon iniciado. Revisando cada {CHECK_INTERVAL_SECONDS}s -> {mask_number(WHATSAPP_NUMBER)}")
+    a2a_log("reminder", "daemon", "started", mask_number(WHATSAPP_NUMBER))
 
     while True:
         try:
             _check_and_send()
-        except Exception as e:
+        except Exception as e:  # el daemon no debe morir por un error puntual
+            log.exception("Reminder loop iteration failed")
             a2a_log("reminder", "daemon", "loop_error", str(e)[:120])
         time.sleep(CHECK_INTERVAL_SECONDS)
 
@@ -186,7 +201,7 @@ def start_reminder_daemon() -> threading.Thread:
 
 # ── Test rapido ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    print("Enviando mensaje de prueba a", WHATSAPP_NUMBER)
+    print("Enviando mensaje de prueba a", mask_number(WHATSAPP_NUMBER))
     ok = _send_whatsapp(
         "Hola! Este es un mensaje de prueba del ReminderAgent de AI-Forge. "
         "Los recordatorios de tus tareas llegaran aqui."

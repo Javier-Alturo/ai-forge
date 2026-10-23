@@ -34,7 +34,7 @@ class GithubAgent(AgentBase):
     def _run(self, user_input: str, context: Dict[str, Any], config: Dict[str, Any] | None) -> str:
         result = self._graph.invoke(
             {"messages": [HumanMessage(content=user_input)]},
-            config=config or {"recursion_limit": 35},
+            config={"recursion_limit": 35, **(config or {})},
         )
         return extract_final_ai_text(result) or "(sin respuesta)"
 

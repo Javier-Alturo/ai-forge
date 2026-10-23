@@ -40,7 +40,7 @@ def get_python() -> str:
 def install_task(hour: str = HOUR, minute: str = MINUTE, send_summary: bool = False):
     """Registra la tarea en Windows Task Scheduler."""
     python = get_python()
-    args = f"--send-summary" if send_summary else ""
+    args = "--send-summary" if send_summary else ""
 
     # Comando completo
     action = f'"{python}" "{SCRIPT}" {args}'.strip()
@@ -62,12 +62,12 @@ def install_task(hour: str = HOUR, minute: str = MINUTE, send_summary: bool = Fa
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode == 0:
-        print(f"✅ Tarea instalada correctamente")
-        print(f"\n💡 Para que envíe el resumen por WhatsApp, ejecuta con --send-summary")
+        print("✅ Tarea instalada correctamente")
+        print("\n💡 Para que envíe el resumen por WhatsApp, ejecuta con --send-summary")
     else:
         print(f"❌ Error al instalar: {result.stderr}")
-        print(f"\n📌 Alternativa manual:")
-        print(f"   Abre 'Programador de tareas' de Windows y crea una tarea con:")
+        print("\n📌 Alternativa manual:")
+        print("   Abre 'Programador de tareas' de Windows y crea una tarea con:")
         print(f"   Programa: {python}")
         print(f"   Argumentos: \"{SCRIPT}\" {args}")
         print(f"   Desencadenador: Diariamente a las {hour}:{minute}")
@@ -91,7 +91,7 @@ def show_status():
         print(result.stdout)
     else:
         print(f"⚠️  La tarea '{TASK_NAME}' no está instalada")
-        print(f"   Ejecuta: py scripts/setup_wsp_cron.py --install")
+        print("   Ejecuta: py scripts/setup_wsp_cron.py --install")
 
 
 def run_test(messages: str = None, dry_run: bool = True):
@@ -137,8 +137,8 @@ def main():
         run_test(messages=args.test_msg, dry_run=False)
     else:
         parser.print_help()
-        print(f"\n📌 Ejemplo rápido para probar:")
-        print(f'   py scripts/setup_wsp_cron.py --test --test-msg "hoy hice ejercicio y grabé un video en inglés"')
+        print("\n📌 Ejemplo rápido para probar:")
+        print('   py scripts/setup_wsp_cron.py --test --test-msg "hoy hice ejercicio y grabé un video en inglés"')
 
 
 if __name__ == "__main__":

@@ -11,6 +11,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from core.sandbox.runtime_guard import build_guard
+
 
 class ProcessRunner:
     """
@@ -93,8 +95,11 @@ class ProcessRunner:
         """
         safe_keys = {"PATH", "HOME", "LANG", "PYTHONPATH", "VIRTUAL_ENV",
                      "SystemRoot", "USERPROFILE", "APPDATA", "LOCALAPPDATA",
-                     "TEMP", "TMP", "ComSpec"}
-        return {k: v for k, v in os.environ.items() if k in safe_keys}
+                     "TEMP", "TMP", "ComSpec", "WINDIR"}
+        env = {k: v for k, v in os.environ.items() if k in safe_keys}
+        env["PYTHONDONTWRITEBYTECODE"] = "1"      # no escribir .pyc fuera del workspace
+        env["MPLCONFIGDIR"] = str(self.workspace)  # caché de matplotlib dentro del workspace
+        return env
 
     def _wrap_code(self, code: str) -> str:
         """
@@ -103,7 +108,9 @@ class ProcessRunner:
         """
         workspace_escaped = str(self.workspace).replace("\\", "\\\\")
         indented = self._indent(code)
-        return f"""\
+        # CAPA 5: audit hook instalado antes de cualquier línea del código generado
+        guard = build_guard(str(self.workspace))
+        return guard + f"""\
 import sys
 import os
 

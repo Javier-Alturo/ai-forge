@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import ast
-import os
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -123,7 +121,7 @@ def skillforge_save_tool(python_code: str) -> str:
             f.write("\n\n")
             f.write(code)
             f.write("\n")
-    except Exception as e:
+    except OSError as e:
         return f"❌ Error al escribir en disco: {e}"
 
     # 6. Verificar que el módulo puede recargarse (que no rompió el grafo)
