@@ -97,3 +97,6 @@ data/agent_workspace/
 # Evals: datos reales del usuario y resultados locales (nunca se versionan)
 evals/private/
 evals/results/
+
+# LangFuse local: secretos generados por observability/setup_env.py
+observability/.env
