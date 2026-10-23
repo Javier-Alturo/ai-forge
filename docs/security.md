@@ -19,7 +19,7 @@ one is controlled.
 | 9 | ChromaDB telemetry | Anonymous usage events | Disabled (`agents/chroma_client.py`). |
 | 9b | LangFuse traces | Prompts, answers, tool calls | Self-hosted on 127.0.0.1 (`observability/`); the tracer refuses non-local hosts; LangFuse product telemetry disabled. |
 | 10 | Hugging Face Hub | Model downloads (no user data) | Set `HF_HUB_OFFLINE=1` once models are cached. |
-| 11 | GitHub Actions (`ai-pr-reviewer`, `pr-to-obsidian`) | PR diffs and descriptions sent to OpenAI / Groq | Runs on GitHub, not locally. Review before enabling on a repo that holds personal data. |
+| 11 | GitHub Actions | Nothing: CI runs Ruff, tests and evals with fake or local models only | The PR workflows that sent diffs to OpenAI / Groq were removed. |
 
 The dashboard binds to `127.0.0.1` only.
 

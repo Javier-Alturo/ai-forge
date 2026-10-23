@@ -9,7 +9,7 @@ import pytest
 
 WORKFLOWS = sorted((Path(__file__).resolve().parent.parent / ".github" / "workflows").glob("*.yml"))
 # Pre-existing workflows not yet pinned by SHA (tracked in docs/security.md). Do not add new ones here.
-UNPINNED_ALLOWED = {"ai-pr-reviewer.yml", "pr-to-obsidian.yml"}
+UNPINNED_ALLOWED: set[str] = set()
 
 
 def _text(path: Path) -> str:
