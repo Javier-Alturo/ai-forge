@@ -44,3 +44,5 @@ llama-index-llms-ollama>=0.3.0
 playwright>=1.40.0
 beautifulsoup4>=4.12.0
 
+# Observabilidad (LangFuse autoalojado, ver observability/)
+langfuse>=3.0.0

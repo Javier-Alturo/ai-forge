@@ -11,6 +11,7 @@ import importlib
 import inspect
 from typing import Any, Callable
 
+from langchain_core.runnables.config import ensure_config
 from langchain_core.tools import BaseTool, StructuredTool, tool
 
 from agents.a2a_log import a2a_log
@@ -86,7 +87,9 @@ def _make_consult_tool(agent: str, target: str, description: str) -> BaseTool:
     getter = _lazy_getter(target)
 
     def consult(task: str) -> str:
-        return invoke_subagent(agent, getter, task)
+        # ensure_config() returns this tool run's child config; passing it on keeps the
+        # sub-agent's trace nested under the orchestrator even though it runs in another thread.
+        return invoke_subagent(agent, getter, task, parent_config=ensure_config())
 
     return StructuredTool.from_function(func=consult, name=tool_name(agent), description=description)
 

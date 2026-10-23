@@ -17,6 +17,7 @@ from agents.logger import get_logger, set_trace_id
 from agents.message_utils import extract_final_ai_text
 from agents.orchestrator_tools import build_orchestrator_tools
 from agents.subagent_runner import get_model_router, invoke_subagent
+from observability.tracing import with_tracing
 
 # Alias de compatibilidad (tests y código antiguo usan los nombres privados)
 _invoke_subagent = invoke_subagent
@@ -123,7 +124,10 @@ def run_turn(user_text: str, thread_id: str = "default") -> AIMessage:
 
     a2a_log("cli", "orchestrator", "user_message", user_text)
     app = get_orchestrator_graph()
-    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 25}
+    config = with_tracing(
+        {"configurable": {"thread_id": thread_id}, "recursion_limit": 25},
+        name="orchestrator_turn", session_id=thread_id, tags=["orchestrator"],
+    )
     try:
         final = app.invoke(
             {"messages": [HumanMessage(content=user_text.strip())]},
@@ -168,7 +172,10 @@ async def arun_turn_stream(user_text: str, thread_id: str = "default") -> AsyncG
 
     a2a_log("dashboard", "orchestrator", "stream_message", user_text)
     app = get_orchestrator_graph()
-    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 25}
+    config = with_tracing(
+        {"configurable": {"thread_id": thread_id}, "recursion_limit": 25},
+        name="orchestrator_turn", session_id=thread_id, tags=["orchestrator"],
+    )
     full_response: list[str] = []
     try:
         async for chunk in app.astream(

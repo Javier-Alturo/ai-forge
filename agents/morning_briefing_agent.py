@@ -83,7 +83,7 @@ class MorningBriefingAgent(AgentBase):
         
         result = self._graph.invoke(
             {"messages": [HumanMessage(content=enriched_input)]},
-            config=config or {"recursion_limit": 40},
+            config={"recursion_limit": 40, **(config or {})},
         )
         return extract_final_ai_text(result) or "(sin respuesta del agente de briefing)"
 

@@ -55,14 +55,26 @@ def _inject_router(agent: Any, name: str) -> None:
         a2a_log("orchestrator", name, "router_injected", f"router→{name}")
 
 
-def _call_agent(agent: Any, task: str) -> Any:
+def child_config(name: str, parent_config: dict | None) -> dict | None:
+    """Config for the sub-agent run: inherits the parent's tracing callbacks and metadata."""
+    if not parent_config or not parent_config.get("callbacks"):
+        return None
+    return {
+        "callbacks": parent_config["callbacks"],
+        "run_name": f"subagent:{name}",
+        "metadata": dict(parent_config.get("metadata") or {}),
+        "tags": [*(parent_config.get("tags") or []), f"agent:{name}"],
+    }
+
+
+def _call_agent(agent: Any, task: str, config: dict | None = None) -> Any:
     if isinstance(agent, AgentBase):  # Fase 3: interfaz estandarizada
-        res = agent.invoke({"input": task})
+        res = agent.invoke({"input": task}, config=config)
         if res.status == "error":
             raise SubagentError(res.error)
         return res.data
     # Legacy: grafo create_react_agent que devuelve un dict de mensajes
-    return agent.invoke({"messages": [HumanMessage(content=task)]}, config={"recursion_limit": 35})
+    return agent.invoke({"messages": [HumanMessage(content=task)]}, config={**(config or {}), "recursion_limit": 35})
 
 
 def _attempt(fn: Callable[[], Any], name: str, soft_s: float, hard_s: float) -> tuple[str, Any]:
@@ -84,7 +96,7 @@ def _attempt(fn: Callable[[], Any], name: str, soft_s: float, hard_s: float) -> 
         executor.shutdown(wait=False, cancel_futures=True)  # nunca esperar a un hilo colgado
 
 
-def invoke_subagent(name: str, getter: Callable[[], Any], task: str) -> str:
+def invoke_subagent(name: str, getter: Callable[[], Any], task: str, parent_config: dict | None = None) -> str:
     cfg = get_agent_config(name)
     if not cfg.enabled:
         return f"Error: El agente {name} está deshabilitado por configuración."
@@ -93,9 +105,10 @@ def invoke_subagent(name: str, getter: Callable[[], Any], task: str) -> str:
     a2a_log("orchestrator", name, "invoke_subgraph", task)
     agent = getter()
     _inject_router(agent, name)
+    config = child_config(name, parent_config)
 
     for attempt in range(1, MAX_ATTEMPTS + 1):
-        status, value = _attempt(lambda: _call_agent(agent, task), name, cfg.soft_s, cfg.hard_s)
+        status, value = _attempt(lambda: _call_agent(agent, task, config), name, cfg.soft_s, cfg.hard_s)
         if status == "ok":
             break
         last = attempt == MAX_ATTEMPTS
