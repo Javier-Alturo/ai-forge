@@ -73,3 +73,6 @@ data/wsp_listener_state.json
 # Logs de ejecucion
 data/logs/
 
+
+# Aprobaciones pendientes de git (push/merge) del MCP agent
+data/git_approvals/
