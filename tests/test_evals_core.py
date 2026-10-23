@@ -76,3 +76,12 @@ def test_bad_line_reports_position(dirs):
 def test_private_results_never_go_to_public_dir():
     assert datasets.results_dir(True).is_relative_to(datasets.PRIVATE_DIR)
     assert not datasets.results_dir(False).is_relative_to(datasets.PRIVATE_DIR)
+
+
+def test_committed_baselines_use_only_generic_data():
+    baselines = sorted((datasets.EVALS_DIR / "baselines").glob("*.json"))
+    for path in baselines:
+        report = json.loads(path.read_text(encoding="utf-8"))
+        assert report["uses_private_data"] is False, f"{path.name} was built with private data"
+        rag_sources = {a.get("source") for a in report["suites"].get("rag", {}).get("answers", [])}
+        assert rag_sources <= {"generic"}, f"{path.name} contains private RAG answers"

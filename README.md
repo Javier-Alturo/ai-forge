@@ -3,7 +3,8 @@
 ![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
-![Tests](https://img.shields.io/badge/tests-92%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-339-brightgreen)
+![Routing eval](https://img.shields.io/badge/routing%20eval-85.7%25-blue)
 ![Agents](https://img.shields.io/badge/agents-17-purple)
 
 **AI-Forge** is a local AI orchestration system built with **LangGraph**. An orchestrator reads each request and hands it to one of 17 specialist agents, so the whole system works as one: it keeps long-term memory, acts on the user's machine and can even write new tools for itself.
@@ -19,7 +20,7 @@ It is designed to run on local models through Ollama, with an optional cloud fal
 - **Second brain (Obsidian Agent):** reads your Obsidian vault, analyzes recent notes and generates weekly reports.
 - **Model Context Protocol (MCP Agent):** full integration with FastMCP servers running in persistent threads. It creates commits and pull requests straight from the chat and works around Windows Credential Manager lockups.
 - **Semantic memory with MemoryGate:** ChromaDB and LlamaIndex give the system long-term memory. MemoryGate classifies every conversation turn before saving it, so the database doesn't fill up with noise.
-- **4-layer security sandbox:** all LLM-generated code goes through AST validator → import allowlist → isolated process → resource limits before it runs. 67 of the 92 tests cover the sandbox alone.
+- **4-layer security sandbox:** all LLM-generated code goes through AST validator → import allowlist → isolated process → resource limits before it runs. On top of that, a runtime audit hook blocks writes, processes and network access outside the sandbox (see docs/security.md).
 - **Local first (100% private):** built to run on local models such as `qwen2.5:14b` through Ollama. A ModelRouter with a circuit breaker can fall back to the cloud if you enable it.
 - **WhatsApp daily sync:** reads your latest WhatsApp Web message with Playwright (for example, *"worked out and read 20 pages"*), uses the local model to work out which daily habits you completed, updates the RPG-style habit tracker, writes a daily log to Obsidian and sends a report with the XP earned back to the chat.
 
@@ -76,11 +77,11 @@ The orchestrator has a team of specialists, all inheriting from `AgentBase`:
 4. **Obsidian Agent** — reads, writes and searches notes in your Markdown vault.
 5. **Marketing Agent** — scrapes leads from Upwork and Reddit with Playwright and scores them.
 6. **Fitness Agent** — keeps a persistent JSON log of gym PRs, injury history and weekly volume.
-7. **Computer Use Agent** — sees the screen with `llava` and automates clicks and typing with PyAutoGUI.
+7. **Computer Use Agent** — sees the screen with `llava` (look-only by default); clicks, typing and apps require `AIFORGE_ALLOW_COMPUTER_USE=1`.
 8. **Code Agent** — generates Python and runs it inside the 4-layer sandbox.
 9. **RAG Agent** — vector search over local PDFs and files plus the whole Obsidian vault.
 10. **Neural Network Agent** — designs, codes and trains PyTorch models with persistent metrics.
-11. **MCP Agent** — autonomous CI/CD: commits, pushes and PRs through FastMCP, with Windows workarounds.
+11. **MCP Agent** — commits and PRs through FastMCP; push and merge require human approval (`scripts/approve_git_action.py`).
 12. **SkillForge Agent** — writes and saves new tools with automatic backup and rollback.
 13. **Image Agent** — generates images with Stable Diffusion v1.5 (local diffusers).
 14. **Voice Agent** — real-time speech transcription with local Whisper.
@@ -107,12 +108,13 @@ copy .env.example .env # Windows
 | `OLLAMA_BASE_URL` | ✅ Yes | URL of the local Ollama server | `http://localhost:11434` |
 | `LLM_PROVIDER` | ✅ Yes | LLM engine: `local` or `cloud` | `local` |
 | `OBSIDIAN_VAULT_PATH` | ✅ For Obsidian / Brain | Absolute path to your vault | `C:/Users/user/MyVault` |
-| `GITHUB_TOKEN` | ✅ For MCP / GitHub | Personal access token | `ghp_xxxxxxxxxxxx` |
+| `GITHUB_TOKEN` | ✅ For MCP / GitHub | Fine-grained token scoped to your repo only (see docs/security.md) | — |
 
 ### Cloud fallback variables (optional)
 
 | Variable | Required | Description | Default |
 |----------|----------|-------------|---------|
+| `AIFORGE_ALLOW_CLOUD` | No | Master switch: without `1`, no prompt ever leaves your machine | empty (off) |
 | `ANTHROPIC_API_KEY` | No | Fall back to Claude when Ollama is not available | `None` |
 | `ANTHROPIC_MODEL` | No | Anthropic model used for the fallback | `claude-sonnet-4-20250514` |
 
@@ -173,7 +175,7 @@ Each agent exposes tools to the orchestrator with LangChain's `@tool` decorator.
 ### 🤖 MCP Agent (dynamic tools through FastMCP)
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `aiforge_commit_push` | Commits and pushes to the remote repo (with Windows workarounds) | `message: str, branch: str` |
+| `aiforge_commit_push` | Local commit of explicit files; the push requires human approval | `message: str, files: str, branch: str, approval_id: str` |
 | `aiforge_create_pr` | Creates a GitHub pull request through the API | `title: str, body: str, head: str, base: str` |
 | `aiforge_get_status` | Current status of the Git repo | — |
 | `aiforge_get_diff` | Diff of the current changes | — |
@@ -277,6 +279,48 @@ Log your daily habits and tasks by sending a plain WhatsApp message (for example
   ```bash
   python scripts/setup_wsp_cron.py --install
   ```
+
+---
+
+## 📏 Evaluation
+
+AI-Forge makes three decisions that unit tests cannot check: **which agent handles a request**,
+**what is worth remembering**, and **whether a RAG answer is grounded**. Each one has an offline
+eval suite in [`evals/`](evals/README.md), run against the local model with fixed, fictional datasets.
+
+```bash
+python -m evals.run                      # all suites, local Ollama
+python -m evals.run --suite routing --model qwen2.5:7b
+```
+
+**Results** — `qwen2.5:14b` via Ollama, temperature 0, generic datasets only
+([`evals/baselines/qwen2.5-14b.json`](evals/baselines/qwen2.5-14b.json)):
+
+| Suite | Dataset | Metric | Result |
+|---|---|---|---|
+| Orchestrator routing | 42 requests across 23 tools | First tool chosen is correct | **85.7%** |
+| MemoryGate | 50 turns (fact / preference / decision / event / ephemeral) | Type accuracy | **78.0%** |
+| | | EPHEMERAL leak rate (would store small talk; target 0%) | **10.0%** |
+| | | Store recall (useful turns actually stored) | **90.0%** |
+| RAG | 4 fictional documents, 20 answerable + 5 unanswerable questions | Answer contains the expected fact | **100%** |
+| | | Says "I don't know" when the answer is not in the documents | **100%** (0% hallucination) |
+
+What the numbers show:
+
+- **Routing** fails on overlapping agents (a PyTorch request goes to the generic code agent, a
+  "remind me at 6 pm" goes to the calendar) and, worse, sometimes answers directly instead of
+  calling a tool ("show my squat PRs" → no tool, so the answer is invented).
+- **MemoryGate** is weakest on `event` (recall 0.5: half the events are filed as facts or
+  dropped) and leaked one trivia question into long-term memory.
+- **RAG** is saturated on this small set — the next step is harder questions (facts split across
+  documents, paraphrases, near-duplicate documents), not a better score on easy ones.
+
+How it is measured: routing binds the real orchestrator prompt and tool schemas and scores only
+the first tool call (no sub-agent runs); MemoryGate calls the production classifier without
+touching the database; RAG indexes into a temporary ChromaDB and scores answers with
+accent-insensitive keyword matching. Per-class precision/recall and confusion matrices are in the
+baseline JSON. CI runs the eval code against fake LLMs on every PR, and a manual workflow
+(`.github/workflows/evals.yml`) runs the suites with a small model in an Ollama container.
 
 ---
 
