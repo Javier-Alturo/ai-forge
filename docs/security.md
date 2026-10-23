@@ -12,7 +12,7 @@ one is controlled.
 | 2 | GitHub (MCP repo tools, PyGithub agent) | Commits, PR titles/bodies, merges | Push and merge need human approval via `scripts/approve_git_action.py` (`core/git_guard.py`). Pushes to the public mirror are refused. Explicit file lists only. Token sent as an HTTP header, never in URLs or logs. |
 | 3 | Telegram Bot API | Briefings and agent replies; incoming messages reach the orchestrator | Only allow-listed chat ids (`TELEGRAM_CHAT_ID`, `TELEGRAM_ALLOWED_CHAT_IDS`) are processed (`core/telegram_auth.py`). The bot refuses to start without one. |
 | 4 | WhatsApp Web (Playwright) | Messages to configured contacts | Runs a local browser session stored under `data/whatsapp_session*/` (git-ignored). Recipients come from local config, not from LLM output. |
-| 5 | Gmail / Google Calendar API | Email search queries, sent emails, events | OAuth token in `token.json` (git-ignored). Scopes include `gmail.send`; consider removing it if sending is not needed. |
+| 5 | Gmail / Google Calendar API | Email search queries, calendar events | Gmail is read-only (`gmail.readonly`); no send tool exists. Old tokens with send/modify scopes are refused and trigger re-consent. Token in `token.json` (git-ignored). |
 | 6 | Web search (DuckDuckGo) and lead scraper (DuckDuckGo, Reddit, LinkedIn) | Search queries written by the LLM | Queries may contain user text; avoid personal data in search prompts. No credentials sent. |
 | 7 | Weather and RSS feeds | City name; plain GET requests | No personal data. |
 | 8 | SkillForge-generated tools | Whatever the generated code requests | AST validation + import allowlist + sandboxed process (`core/sandbox/`). `requests`/`httpx` are allowed, so generated tools can reach the network. |
