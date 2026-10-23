@@ -76,3 +76,17 @@ data/logs/
 
 # Aprobaciones pendientes de git (push/merge) del MCP agent
 data/git_approvals/
+
+# Credenciales y sesiones (patrones amplios: cubren copias con fecha)
+credentials*.json
+client_secret*.json
+token*.json
+*.pem
+*.key
+*.p12
+data/whatsapp_session*/
+data/wsp_listener_state.json
+*.log
+
+# Config local de MCP (contiene rutas absolutas de la máquina); usar mcp_servers.example.json
+mcp_servers.json
