@@ -63,6 +63,8 @@ def score(items: list[dict], answers: list[str]) -> dict:
         "false_abstention_rate": round(
             sum(is_abstention(a) for _, a in answerable) / n_ans, 3) if n_ans else 0.0,
         "errors": errors,
+        # Every answer, so a run can be audited (or re-scored by an LLM judge) without re-running it
+        "answers": [{"question": i["question"], "answer": a, "source": i.get("source")} for i, a in zip(items, answers)],
     }
 
 

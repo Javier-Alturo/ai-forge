@@ -47,6 +47,7 @@ def test_score():
     assert result["abstention_rate"] == 0.5 and result["hallucination_rate"] == 0.5
     assert result["false_abstention_rate"] == 0.5
     assert len(result["errors"]) == 2
+    assert [a["answer"] for a in result["answers"]][0] == "Fue en 2015"
 
 
 def test_run_is_isolated_from_real_store():
