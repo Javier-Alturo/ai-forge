@@ -18,6 +18,10 @@ sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
 load_dotenv(ROOT / ".env")
 
+from agents.logger import get_logger
+
+log = get_logger("morning_briefing")
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SERVICIOS HEALTH & POLLING
 # ══════════════════════════════════════════════════════════════════════════════
@@ -36,10 +40,9 @@ def wait_for_services(timeout_s: int = 60, interval_s: int = 5) -> bool:
         # Probar Ollama
         try:
             r = httpx.get(f"{ollama_base}/api/tags", timeout=2.0)
-            if r.status_code == 200:
-                ollama_ready = True
-        except Exception:
-            pass
+            ollama_ready = r.status_code == 200
+        except httpx.HTTPError:
+            ollama_ready = False  # aún no arranca; se reintenta
             
         # Probar ChromaDB
         try:
@@ -47,8 +50,8 @@ def wait_for_services(timeout_s: int = 60, interval_s: int = 5) -> bool:
             client = get_chroma_client()
             client.list_collections()
             chroma_ready = True
-        except Exception:
-            pass
+        except Exception:  # noqa: BLE001 — sondeo: cualquier fallo significa "aún no listo" y se reintenta
+            log.debug("ChromaDB aún no responde", exc_info=True)
             
         if ollama_ready and chroma_ready:
             print("🟢 Ollama y ChromaDB están listos y respondiendo.")
@@ -84,7 +87,8 @@ def generate_degraded_briefing() -> str:
     def safe_run(tool_fn, desc):
         try:
             return tool_fn.invoke({})
-        except Exception as e:
+        except Exception as e:  # una fuente caída no debe tumbar el briefing degradado
+            log.exception("Tool %s falló en modo degradado", desc)
             return f"⚠️ No se pudo obtener {desc}: {e}"
             
     tasks_today = safe_run(briefing_get_daily_note_tasks, "tareas de hoy")
@@ -202,8 +206,8 @@ def send_telegram_briefing(briefing_text: str):
                 print("✅ Briefing de Telegram enviado con éxito.")
             else:
                 print(f"❌ Telegram respondió con status: {resp.status}")
-    except Exception as e:
-        print(f"❌ Error enviando mensaje a Telegram: {e}")
+    except (OSError, ValueError) as e:  # URLError ⊂ OSError; no imprimir la URL (lleva el token)
+        print(f"❌ Error enviando mensaje a Telegram: {type(e).__name__}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MAIN ORCHESTRATION
@@ -228,7 +232,8 @@ def run_briefing_flow() -> str:
             else:
                 print(f"⚠️ El agente falló o devolvió datos vacíos ({res.error}). Degradando...")
                 briefing_text = generate_degraded_briefing()
-        except Exception as e:
+        except Exception as e:  # cualquier fallo del agente -> modo degradado
+            log.exception("MorningBriefingAgent falló")
             print(f"⚠️ Error al importar o invocar al agente: {e}. Degradando...")
             briefing_text = generate_degraded_briefing()
     else:
@@ -245,7 +250,7 @@ def run_briefing_flow() -> str:
         briefing_note_path = daily_notes_dir / f"{today}-briefing.md"
         briefing_note_path.write_text(briefing_text, encoding="utf-8")
         print(f"📔 Briefing guardado en Obsidian: {briefing_note_path}")
-    except Exception as e:
+    except (ValueError, OSError) as e:
         print(f"❌ No se pudo guardar la nota del briefing en Obsidian: {e}")
         
     # Enviar a Telegram
@@ -271,7 +276,8 @@ if __name__ == "__main__":
     try:
         from scripts.goal_tracker import check_and_update_goals
         goal_update_summary = check_and_update_goals()
-    except Exception as e:
+    except Exception as e:  # el paso 0 es opcional: nunca debe impedir el briefing
+        log.exception("goal_tracker falló")
         print(f"⚠️ No se pudo actualizar metas: {e}")
 
     # ─── Paso 1: Generar el briefing ───
@@ -289,8 +295,8 @@ if __name__ == "__main__":
                     json={"chat_id": CHAT_ID, "text": recap},
                     timeout=10.0,
                 )
-        except Exception as e:
-            print(f"⚠️ Error enviando recap de metas: {e}")
+        except httpx.HTTPError as e:
+            print(f"⚠️ Error enviando recap de metas: {type(e).__name__}")
 
     # ─── Paso 3: Guardar candado ───
     lock_file.parent.mkdir(parents=True, exist_ok=True)
