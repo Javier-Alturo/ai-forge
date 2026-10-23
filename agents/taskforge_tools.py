@@ -148,7 +148,7 @@ def taskforge_create_goal(
     """Crea una nueva meta a largo plazo.
 
     Args:
-        title: Nombre de la meta (ej: 'Alcanzar ingles B2').
+        title: Nombre de la meta (ej: 'Terminar un curso de Python').
         target_date: Fecha objetivo en formato YYYY-MM-DD. Opcional.
         color: Color hex para el indicador visual. Default: indigo.
     """

@@ -66,8 +66,7 @@ mcp_error.log
 
 # Sesiones de WhatsApp Web
 data/whatsapp_session/
-data/whatsapp_session_old_*/
-data/whatsapp_session_dftech_*/
+data/whatsapp_session_*/
 data/wsp_listener_state.json
 
 # Logs de ejecucion

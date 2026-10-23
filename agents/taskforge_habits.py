@@ -62,7 +62,7 @@ def taskforge_add_habit(
 
     Args:
         goal_id: ID de la meta a la que pertenece este habito.
-        title: Descripcion del habito (ej: 'Grabar 1 video en ingles').
+        title: Descripcion del habito (ej: 'Leer 20 minutos').
         increment: Cuanto sube el progreso de la meta al completar (default: 0.5%).
     """
     a2a_log("taskforge", "habits", "add_habit", f"{goal_id}:{title[:60]}")
