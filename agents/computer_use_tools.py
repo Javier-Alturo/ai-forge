@@ -9,12 +9,10 @@ from __future__ import annotations
 
 import base64
 import io
-import json
 import os
 import re
 import subprocess
 import sys
-from pathlib import Path
 
 import httpx
 import pyautogui

@@ -92,7 +92,6 @@ def _get_mcp_loop() -> asyncio.AbstractEventLoop:
 
 def _run_sync(coro_fn, *args):
     """Ejecuta una función asíncrona en el hilo persistente de MCP."""
-    import concurrent.futures
     loop = _get_mcp_loop()
     future = asyncio.run_coroutine_threadsafe(coro_fn(*args), loop)
     return future.result()

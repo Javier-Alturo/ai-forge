@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Tuple
 
@@ -160,8 +160,8 @@ class ModelRouter:
         try:
             from langchain_anthropic import ChatAnthropic
             return ChatAnthropic(model=self.cloud_model_name)  # type: ignore[arg-type]
-        except ImportError:
+        except ImportError as e:
             raise RuntimeError(
                 "langchain_anthropic no está instalado. "
                 "Ejecuta: pip install langchain-anthropic"
-            )
+            ) from e

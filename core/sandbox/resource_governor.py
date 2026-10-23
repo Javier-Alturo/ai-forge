@@ -10,7 +10,6 @@ Este módulo detecta el OS y aplica el mecanismo correcto.
 from __future__ import annotations
 
 import sys
-import os
 from dataclasses import dataclass
 
 

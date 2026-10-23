@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from agents.chroma_memory import (
     add_progress as _add_progress,
