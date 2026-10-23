@@ -22,6 +22,20 @@ one is controlled.
 
 The dashboard binds to `127.0.0.1` only.
 
+## Local actions (what an agent can do on this machine)
+
+| Capability | Default | Control |
+|---|---|---|
+| Generated Python (code / neural-network agents) | Sandboxed | AST deny-list + import allowlist + isolated process + **runtime audit hook** (`core/sandbox/runtime_guard.py`): writes only in the sandbox workspace, reads only workspace + Python install, no process creation, network to localhost only. |
+| File agent | `data/agent_workspace` only | `core/fs_policy.py`: paths must be under `AIFORGE_FILE_ROOTS`; `.env`, tokens, keys, `.git`, `.ssh` and session folders are always denied. |
+| Obsidian agent | Vault only | Note paths cannot escape the vault (`..` refused). |
+| Computer use | Look-only | Click / type / open apps need `AIFORGE_ALLOW_COMPUTER_USE=1`; apps limited to `AIFORGE_ALLOWED_APPS` names. |
+| Gmail | Read-only | No send tool, no send/modify scopes. |
+| Git push / PR merge | Human approval | `core/git_guard.py`; public mirror blocked. |
+
+Residual risk: with computer use enabled, an agent can still type into any window. Enable it only
+while supervising.
+
 ## Secrets
 
 All credentials live in `.env`, `credentials.json`, `token*.json` or session folders, and are
