@@ -1,0 +1,43 @@
+// Generic routing eval. Fictional requests. "expected"[0] is the primary label; extra entries are also accepted.
+{"text": "Hola, ¿cómo estás?", "expected": ["none"]}
+{"text": "Gracias, eso es todo por hoy", "expected": ["none"]}
+{"text": "¿Qué te pregunté hace un momento?", "expected": ["none"]}
+{"text": "Busca en internet las últimas noticias sobre la versión nueva de Python", "expected": ["web_search"]}
+{"text": "¿Cuál es el precio actual del dólar en pesos colombianos?", "expected": ["web_search"]}
+{"text": "Verifica en la web si LangGraph ya soporta checkpoints en Postgres", "expected": ["web_search"]}
+{"text": "Guarda en mi memoria que mi editor favorito es VS Code", "expected": ["memory"]}
+{"text": "¿Qué recuerdas sobre mis preferencias de formato?", "expected": ["memory"]}
+{"text": "Busca en la memoria semántica lo que guardamos sobre embeddings", "expected": ["memory"]}
+{"text": "Escribe y ejecuta un script en Python que calcule los primeros 20 números primos", "expected": ["code"]}
+{"text": "Haz un programa que ordene esta lista: 5, 3, 9, 1", "expected": ["code"]}
+{"text": "Calcula con código el factorial de 25", "expected": ["code"]}
+{"text": "Diseña una red neuronal pequeña en PyTorch y entrénala con datos sintéticos", "expected": ["neural_network"]}
+{"text": "Entrena un perceptrón multicapa para clasificar puntos XOR y dame la pérdida final", "expected": ["neural_network"]}
+{"text": "Registra mi sesión de hoy: Push, fuerza, press banca 3x5 con 60 kg", "expected": ["fitness"]}
+{"text": "¿Qué rutina me toca hoy en el gimnasio?", "expected": ["fitness"]}
+{"text": "Muéstrame mis récords personales de sentadilla", "expected": ["fitness"]}
+{"text": "Agrega a mis tareas de hoy: revisar el informe trimestral", "expected": ["taskforge"]}
+{"text": "Marca como completado el hábito de leer 20 minutos", "expected": ["taskforge"]}
+{"text": "¿Cómo voy con mis metas de esta semana?", "expected": ["taskforge"]}
+{"text": "Recuérdame a las 6 pm llamar al dentista", "expected": ["taskforge", "memory"]}
+{"text": "Busca clientes en Upwork que necesiten automatizaciones con n8n", "expected": ["marketing", "find_real_leads"]}
+{"text": "Encuentra leads reales en Reddit de gente que busque un agente de IA", "expected": ["find_real_leads", "marketing"]}
+{"text": "Escríbeme un mensaje de outreach para una clínica que quiere un chatbot", "expected": ["marketing"]}
+{"text": "Lee el archivo notas.txt de mi carpeta de trabajo", "expected": ["file"]}
+{"text": "Lista los archivos que hay en la carpeta de trabajo", "expected": ["file"]}
+{"text": "¿Tengo correos sin leer importantes?", "expected": ["email"]}
+{"text": "Busca en mi Gmail el correo de la factura del hosting", "expected": ["email"]}
+{"text": "¿Qué eventos tengo mañana en el calendario?", "expected": ["calendar"]}
+{"text": "Crea un evento el viernes a las 10 am: reunión de planeación", "expected": ["calendar"]}
+{"text": "Graba mi voz y transcribe lo que diga", "expected": ["voice"]}
+{"text": "Genera una imagen de un gato astronauta estilo acuarela", "expected": ["image"]}
+{"text": "Toma una captura de pantalla y dime qué ventana está abierta", "expected": ["computer_use"]}
+{"text": "Lista los issues abiertos de mi repositorio en GitHub", "expected": ["github", "mcp"]}
+{"text": "Haz commit de agents/llm.py con el mensaje 'fix: timeout' y abre un PR", "expected": ["mcp", "github"]}
+{"text": "Indexa los documentos de data/documents y dime de qué tratan", "expected": ["rag"]}
+{"text": "Escribe una nota nueva en Obsidian llamada Ideas con tres ideas de proyectos", "expected": ["obsidian"]}
+{"text": "Busca en mis notas de Obsidian todo lo relacionado con Docker", "expected": ["obsidian", "rag_query_obsidian"]}
+{"text": "¿Cómo funciona el ModelRouter de AI-Forge según la documentación del proyecto?", "expected": ["rag_query_obsidian", "obsidian"]}
+{"text": "Analiza mis notas recientes y genérame insights para un newsletter", "expected": ["brain"]}
+{"text": "Genera mi Morning Briefing de hoy", "expected": ["morning_briefing"]}
+{"text": "Crea una herramienta nueva y permanente que convierta grados Celsius a Fahrenheit", "expected": ["skillforge"]}
