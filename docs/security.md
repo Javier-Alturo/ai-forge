@@ -17,6 +17,7 @@ one is controlled.
 | 7 | Weather and RSS feeds | City name; plain GET requests | No personal data. |
 | 8 | SkillForge-generated tools | Whatever the generated code requests | AST validation + import allowlist + sandboxed process (`core/sandbox/`). `requests`/`httpx` are allowed, so generated tools can reach the network. |
 | 9 | ChromaDB telemetry | Anonymous usage events | Disabled (`agents/chroma_client.py`). |
+| 9b | LangFuse traces | Prompts, answers, tool calls | Self-hosted on 127.0.0.1 (`observability/`); the tracer refuses non-local hosts; LangFuse product telemetry disabled. |
 | 10 | Hugging Face Hub | Model downloads (no user data) | Set `HF_HUB_OFFLINE=1` once models are cached. |
 | 11 | GitHub Actions (`ai-pr-reviewer`, `pr-to-obsidian`) | PR diffs and descriptions sent to OpenAI / Groq | Runs on GitHub, not locally. Review before enabling on a repo that holds personal data. |
 
