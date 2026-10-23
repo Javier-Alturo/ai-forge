@@ -145,10 +145,8 @@ def rag_add_document(filename: str, content: str) -> str:
 def rag_list_indexed(max_rows: int = 50) -> str:
     """Lista ids/metadatos de fragmentos en la colección RAG de Chroma."""
     a2a_log("rag", "chromadb", "list_indexed", RAG_COLLECTION)
-    import chromadb
-
     _ensure_dirs()
-    client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+    client = get_chroma_client()
     try:
         coll = client.get_collection(RAG_COLLECTION)
     except Exception as exc:  # noqa: BLE001
