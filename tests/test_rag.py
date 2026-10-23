@@ -1,11 +1,14 @@
 import os
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 
 from agents.rag_tools import rag_add_document, rag_query
 
 
+@pytest.mark.requires_ollama
 def test_rag_flow():
     # Asegurar que el entorno de testing use un directorio diferente si es posible
     os.environ["CHROMA_DIR"] = "./data/chroma_db_test"
