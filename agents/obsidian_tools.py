@@ -19,7 +19,11 @@ def get_vault_path() -> Path:
 def _resolve_note_path(title: str) -> Path:
     if not title.endswith(".md"):
         title += ".md"
-    return get_vault_path() / title
+    vault = get_vault_path().resolve()
+    path = (vault / title).resolve()
+    if vault not in path.parents:
+        raise ValueError(f"La nota debe estar dentro del vault: {title}")
+    return path
 
 @tool
 def obsidian_read_note(title: str) -> str:

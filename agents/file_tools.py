@@ -1,4 +1,8 @@
-"""Tools del agente de archivos (lectura/escritura/listado/búsqueda)."""
+"""Tools del agente de archivos (lectura/escritura/listado/búsqueda).
+
+Seguridad: todas las rutas pasan por core.fs_policy.check_path — solo carpetas
+permitidas (AIFORGE_FILE_ROOTS) y nunca archivos de credenciales o sesiones.
+"""
 
 from __future__ import annotations
 
@@ -8,17 +12,26 @@ from pathlib import Path
 from langchain_core.tools import tool
 
 from agents.a2a_log import a2a_log
+from core.fs_policy import PathNotAllowedError, check_path
 
 
 def _resolve(path_str: str) -> Path:
-    return Path(path_str).expanduser().resolve()
+    return check_path(path_str)
+
+
+def _denied(exc: PathNotAllowedError) -> str:
+    a2a_log("file", "fs_policy", "denied", str(exc)[:200])
+    return f"⛔ Acceso denegado: {exc}"
 
 
 @tool
 def file_read_file(path: str, max_bytes: int = 500_000) -> str:
     """Lee un archivo de texto. path: ruta absoluta o relativa. max_bytes: límite de tamaño."""
     a2a_log("file", "filesystem", "read", path[:200])
-    p = _resolve(path)
+    try:
+        p = _resolve(path)
+    except PathNotAllowedError as exc:
+        return _denied(exc)
     if not p.is_file():
         return f"No es un archivo: {p}"
     data = p.read_bytes()[:max_bytes]
@@ -32,7 +45,10 @@ def file_read_file(path: str, max_bytes: int = 500_000) -> str:
 def file_write_file(path: str, content: str, append: bool = False) -> str:
     """Escribe o anexa texto a un archivo. Crea directorios padre si hace falta."""
     a2a_log("file", "filesystem", "write", path[:200])
-    p = _resolve(path)
+    try:
+        p = _resolve(path)
+    except PathNotAllowedError as exc:
+        return _denied(exc)
     p.parent.mkdir(parents=True, exist_ok=True)
     mode = "a" if append else "w"
     with p.open(mode, encoding="utf-8", errors="replace") as f:
@@ -44,7 +60,10 @@ def file_write_file(path: str, content: str, append: bool = False) -> str:
 def file_list_directory(path: str, max_entries: int = 200) -> str:
     """Lista entradas en un directorio (no recursivo)."""
     a2a_log("file", "filesystem", "list_dir", path[:200])
-    p = _resolve(path)
+    try:
+        p = _resolve(path)
+    except PathNotAllowedError as exc:
+        return _denied(exc)
     if not p.is_dir():
         return f"No es directorio: {p}"
     names = sorted(x.name for x in p.iterdir())[:max_entries]
@@ -58,8 +77,11 @@ def file_list_directory(path: str, max_entries: int = 200) -> str:
 def file_move_or_copy(source_path: str, destination_path: str, operation: str) -> str:
     """Mueve o copia un archivo o directorio. operation: 'move' o 'copy'."""
     a2a_log("file", "filesystem", operation, f"{source_path} -> {destination_path}")
-    src = _resolve(source_path)
-    dst = _resolve(destination_path)
+    try:
+        src = _resolve(source_path)
+        dst = _resolve(destination_path)
+    except PathNotAllowedError as exc:
+        return _denied(exc)
     if not src.exists():
         return f"No existe origen: {src}"
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -90,7 +112,10 @@ def file_search(
     content_substring: si no vacío, solo archivos de texto que contengan esta cadena (lento).
     """
     a2a_log("file", "filesystem", "search", f"{root_path} glob={name_glob}")
-    root = _resolve(root_path)
+    try:
+        root = _resolve(root_path)
+    except PathNotAllowedError as exc:
+        return _denied(exc)
     if not root.is_dir():
         return f"No es directorio: {root}"
     hits: list[str] = []
@@ -105,6 +130,10 @@ def file_search(
             break
         if not p.is_file():
             continue
+        try:
+            check_path(str(p))
+        except PathNotAllowedError:
+            continue  # nunca listar ni leer credenciales
         if not needle:
             hits.append(str(p))
             continue

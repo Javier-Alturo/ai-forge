@@ -90,3 +90,6 @@ data/wsp_listener_state.json
 
 # Config local de MCP (contiene rutas absolutas de la máquina); usar mcp_servers.example.json
 mcp_servers.json
+
+# Carpeta de trabajo por defecto del File Agent (core/fs_policy.py)
+data/agent_workspace/
