@@ -71,3 +71,15 @@ def test_dataset_labels_are_valid_tools():
     assert len(items) >= 40
     bad = [(i["text"], label) for i in items for label in i["expected"] if label not in valid]
     assert not bad
+
+
+def test_failed_call_counts_as_error_not_crash():
+    class Broken:
+        def bind_tools(self, tools):
+            return self
+
+        def invoke(self, messages):
+            raise RuntimeError("token repeat limit reached")
+
+    result = routing.run(Broken(), [{"text": "hola", "expected": ["none"]}])
+    assert result["accuracy"] == 0.0 and result["errors"][0]["predicted"] == "error"

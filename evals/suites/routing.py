@@ -8,12 +8,15 @@ Labels: sub-agent key (e.g. "taskforge"), a direct tool name, or "none" (answers
 
 from __future__ import annotations
 
+import logging
 from typing import Callable
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import BaseTool, StructuredTool
 
 from evals import metrics
+
+log = logging.getLogger("ai_forge.evals")
 
 PREFIX = "orchestrator_consult_"
 
@@ -42,7 +45,12 @@ def build_tool_specs() -> list[BaseTool]:
 
 
 def predict(bound_llm, system_prompt: str, text: str) -> str:
-    msg = bound_llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=text)])
+    """First tool label, "none" for a direct answer, or "error" if the model call fails."""
+    try:
+        msg = bound_llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=text)])
+    except Exception:  # one bad generation (e.g. Ollama repeat limit) must not abort the whole eval
+        log.exception("Routing prediction failed for %r", text[:60])
+        return "error"
     calls = getattr(msg, "tool_calls", None) or []
     return label_for_tool(calls[0]["name"]) if calls else "none"
 
