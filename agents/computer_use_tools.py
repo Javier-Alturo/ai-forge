@@ -1,4 +1,9 @@
-"""Computer use local: PyAutoGUI + visión vía Ollama (p.ej. llava)."""
+"""Computer use local: PyAutoGUI + visión vía Ollama (p.ej. llava).
+
+Seguridad: por defecto el agente solo puede MIRAR la pantalla (captura + localizar).
+Clic, teclado, mover el mouse y abrir apps requieren AIFORGE_ALLOW_COMPUTER_USE=1.
+Abrir apps solo acepta nombres de AIFORGE_ALLOWED_APPS (nunca rutas ni comandos).
+"""
 
 from __future__ import annotations
 
@@ -18,6 +23,17 @@ from agents.a2a_log import a2a_log
 
 OLLAMA_BASE = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 VISION_MODEL = os.environ.get("OLLAMA_VISION_MODEL", "llava")
+
+DEFAULT_ALLOWED_APPS = "notepad,calc,mspaint"
+
+
+def control_allowed() -> bool:
+    return os.environ.get("AIFORGE_ALLOW_COMPUTER_USE", "").strip() == "1"
+
+
+def allowed_apps() -> set[str]:
+    raw = os.environ.get("AIFORGE_ALLOWED_APPS", DEFAULT_ALLOWED_APPS)
+    return {x.strip().lower() for x in raw.split(",") if x.strip()}
 
 
 def _screenshot_b64() -> str:
@@ -72,18 +88,17 @@ def computer_move_mouse(x: int, y: int, duration: float = 0.2) -> str:
 
 
 @tool
-def computer_open_app(app_name_or_path: str) -> str:
-    """Abre una aplicación: ruta ejecutable o nombre (Windows: start)."""
-    a2a_log("computer_use", "os", "open_app", app_name_or_path[:120])
-    p = Path(app_name_or_path)
+def computer_open_app(app_name: str) -> str:
+    """Abre una aplicación de la lista permitida por nombre (p.ej. notepad, calc)."""
+    a2a_log("computer_use", "os", "open_app", app_name[:120])
+    name = app_name.strip().lower()
+    if name not in allowed_apps() or not re.fullmatch(r"[a-z0-9_.-]+", name):
+        return f"⛔ App no permitida: {app_name}. Permitidas: {', '.join(sorted(allowed_apps()))}"
     if sys.platform == "win32":
-        if p.is_file():
-            os.startfile(str(p))  # type: ignore[attr-defined]
-        else:
-            subprocess.Popen(["cmd", "/c", "start", "", app_name_or_path], shell=False)
+        os.startfile(name)  # type: ignore[attr-defined]
     else:
-        subprocess.Popen(["xdg-open", app_name_or_path] if p.is_file() else ["sh", "-c", app_name_or_path])
-    return f"Lanzado: {app_name_or_path}"
+        subprocess.Popen([name], shell=False)
+    return f"Lanzado: {name}"
 
 
 @tool
@@ -105,11 +120,8 @@ def computer_find_element(description: str) -> str:
 
 
 def get_computer_use_tools():
-    return [
-        computer_screenshot,
-        computer_click,
-        computer_type_text,
-        computer_move_mouse,
-        computer_open_app,
-        computer_find_element,
-    ]
+    read_only = [computer_screenshot, computer_find_element]
+    if not control_allowed():
+        a2a_log("computer_use", "policy", "read_only", "AIFORGE_ALLOW_COMPUTER_USE no activo")
+        return read_only
+    return read_only + [computer_click, computer_type_text, computer_move_mouse, computer_open_app]
