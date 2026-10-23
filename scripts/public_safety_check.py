@@ -1,7 +1,7 @@
 """Public safety gate: block a push that would publish personal data or secrets.
 
 Scans (1) every tracked file at HEAD and (2) every commit being pushed (added lines,
-file names and commit messages), so something added in one commit and deleted in the
+file names, commit messages and author/committer emails), so something added in one commit and deleted in the
 next is still caught. Exits 1 on any finding.
 
 Generic patterns live here. Personal terms (your name, family, clients, habit names)
@@ -135,12 +135,15 @@ def scan_tree(repo: Path, term_re: re.Pattern | None) -> list[Finding]:
 
 
 def scan_commits(repo: Path, rev_args: list[str], term_re: re.Pattern | None) -> list[Finding]:
-    """Added lines, file names and messages of every commit in the range."""
-    log = git("log", "-p", "--no-color", "--format=@@COMMIT %h%n%B", *rev_args, "--", cwd=repo)
+    """Added lines, file names, messages and author/committer emails of every commit in the range."""
+    log = git("log", "-p", "--no-color", "--format=@@COMMIT %h %ae %ce%n%B", *rev_args, "--", cwd=repo)
     findings, commit, path = [], "?", ""
     for line in log.splitlines():
         if line.startswith("@@COMMIT "):
-            commit, path = line.split()[1], "(message)"
+            _, commit, *emails = line.split()
+            findings += [Finding(f"{commit}:(author)", f.category, f.excerpt)
+                         for f in scan_text(" ".join(emails), "", term_re, "(author)")]
+            path = "(message)"
             continue
         if line.startswith("+++ b/"):
             path = line[6:]

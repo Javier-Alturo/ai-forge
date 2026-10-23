@@ -96,6 +96,14 @@ def test_personal_term_in_commit_message(repo, capsys):
     assert "(message)" in capsys.readouterr().err
 
 
+def test_personal_author_email_is_caught(repo, capsys):
+    base = _git(repo, "rev-parse", "HEAD").strip()
+    _git(repo, "config", "user.email", FAKE_EMAIL)
+    _commit(repo, "e.txt", "ok\n")
+    assert _run(repo, "--range", f"{base}..HEAD") == 1
+    assert "(author)" in capsys.readouterr().err
+
+
 def test_pre_push_new_branch_scans_unpushed_commits(repo):
     _commit(repo, "b.txt", f"{FAKE_PHONE}\n")
     sha = _git(repo, "rev-parse", "HEAD").strip()
