@@ -19,6 +19,8 @@ import time
 from datetime import date, datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from agents.a2a_log import a2a_log
 
 # ── Configuracion ─────────────────────────────────────────────────────────────
@@ -26,8 +28,10 @@ _ROOT          = Path(__file__).resolve().parent.parent
 _TASKS_FILE    = _ROOT / "data" / "taskforge" / "tasks.json"
 _REMINDED_FILE = _ROOT / "data" / "taskforge" / "reminded.json"
 
-# Numero de WhatsApp destino, formato internacional sin '+' (ej. 573001234567)
-WHATSAPP_NUMBER = os.environ.get("WSP_SYNC_NUMBER", "")
+load_dotenv(_ROOT / ".env")
+
+# Numero de WhatsApp destino (con indicativo, sin "+"). Se configura en .env, nunca en el codigo.
+WHATSAPP_NUMBER = os.getenv("WSP_REMINDER_NUMBER") or os.getenv("WSP_SYNC_NUMBER", "")
 
 # Cuantos segundos entre cada revision
 CHECK_INTERVAL_SECONDS = 60
@@ -40,6 +44,9 @@ TOLERANCE_MINUTES = 1
 
 def _send_whatsapp(message: str) -> bool:
     """Envia un mensaje de WhatsApp usando Playwright (sesion persistente)."""
+    if not WHATSAPP_NUMBER:
+        a2a_log("reminder", "whatsapp", "error", "WSP_REMINDER_NUMBER no configurado en .env")
+        return False
     try:
         from playwright.sync_api import sync_playwright
         import urllib.parse
