@@ -20,3 +20,5 @@ max-complexity = 10
 
 [lint.per-file-ignores]
 "tests/**" = ["S110"]
+# Written by the SkillForge agent: header imports are a template available to generated tools.
+"agents/dynamic_tools.py" = ["F401", "F811"]
