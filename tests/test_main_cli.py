@@ -26,3 +26,15 @@ def test_blank_line_is_ignored(capsys):
 def test_exit_commands(cmd):
     with pytest.raises(KeyboardInterrupt):
         main.handle_line(cmd, "s1")
+
+
+def test_background_tasks_finish_before_exit():
+    import threading
+    import time
+
+    from agents import orchestrator
+
+    done = threading.Event()
+    orchestrator._start_background(lambda: (time.sleep(0.3), done.set()))
+    orchestrator.wait_for_background_tasks(timeout=5)
+    assert done.is_set()

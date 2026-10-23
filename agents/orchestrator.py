@@ -102,6 +102,24 @@ def get_orchestrator_graph():
     return _ORCHESTRATOR
 
 
+_BACKGROUND: list[threading.Thread] = []
+
+
+def _start_background(target, *args) -> None:
+    """Run post-turn work (MemoryGate) without blocking the reply; tracked so CLIs can wait."""
+    _BACKGROUND[:] = [t for t in _BACKGROUND if t.is_alive()]
+    thread = threading.Thread(target=target, args=args, daemon=True)
+    _BACKGROUND.append(thread)
+    thread.start()
+
+
+def wait_for_background_tasks(timeout: float = 60.0) -> None:
+    """Call before a short-lived process exits; otherwise the interpreter shuts down mid-task
+    and the turn's memory is never stored."""
+    for thread in list(_BACKGROUND):
+        thread.join(timeout)
+
+
 def _run_memory_gate(user_text: str, response_text: str) -> None:
     """Evalúa el turno completo con MemoryGate en background (no bloquea la respuesta)."""
     try:
@@ -140,11 +158,7 @@ def run_turn(user_text: str, thread_id: str = "default") -> AIMessage:
         body = "Error: Alcanzé el límite máximo de pasos de pensamiento para esta solicitud. Por favor, sé más específico o simplifica tu petición."
 
     # MemoryGate: evaluar el turno en background sin bloquear la respuesta al usuario
-    threading.Thread(
-        target=_run_memory_gate,
-        args=(user_text, body),
-        daemon=True
-    ).start()
+    _start_background(_run_memory_gate, user_text, body)
 
     return AIMessage(content=body)
 
@@ -193,8 +207,4 @@ async def arun_turn_stream(user_text: str, thread_id: str = "default") -> AsyncG
 
     # MemoryGate: evaluar el turno completo en background después del stream
     if full_response:
-        threading.Thread(
-            target=_run_memory_gate,
-            args=(user_text, "".join(full_response)),
-            daemon=True
-        ).start()
+        _start_background(_run_memory_gate, user_text, "".join(full_response))

@@ -57,6 +57,13 @@ def handle_line(line: str, session_id: str) -> None:
         print(f"\nError: {exc}\n", file=sys.stderr)
 
 
+def _finish_background() -> None:
+    """Let MemoryGate finish storing the last turn before the process exits."""
+    from agents.orchestrator import wait_for_background_tasks
+
+    wait_for_background_tasks()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Sistema A2A multi-agente (LangGraph + Ollama): orquestador, web, memoria, código, PyTorch."
@@ -82,6 +89,7 @@ def main() -> None:
 
     if args.message:
         handle_line(" ".join(args.message), session_id)
+        _finish_background()
         return
 
     while True:
@@ -95,6 +103,7 @@ def main() -> None:
         except KeyboardInterrupt:
             print("\nAdiós.")
             break
+    _finish_background()
 
 
 if __name__ == "__main__":
