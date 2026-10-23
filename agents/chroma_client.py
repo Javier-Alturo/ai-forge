@@ -17,6 +17,7 @@ from typing import Any
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 
 _ROOT = Path(__file__).resolve().parent.parent
+# CHROMA_DIR permite aislar la base (p.ej. los tests usan un directorio temporal)
 CHROMA_DIR = Path(os.environ.get("CHROMA_DIR", _ROOT / "data" / "chromadb"))
 
 _client: Any = None

@@ -24,3 +24,8 @@ def test_singleton_client_has_telemetry_disabled(tmp_path, monkeypatch):
     monkeypatch.setattr(chroma_client, "_client", None)
     client = chroma_client.get_chroma_client()
     assert client.get_settings().anonymized_telemetry is False
+
+
+def test_tests_do_not_use_real_chroma_dir():
+    real = Path(__file__).resolve().parent.parent / "data" / "chromadb"
+    assert chroma_client.CHROMA_DIR.resolve() != real.resolve()
