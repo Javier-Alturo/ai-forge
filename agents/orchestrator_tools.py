@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib
 import inspect
+import os
 from typing import Any, Callable
 
 from langchain_core.runnables.config import ensure_config
@@ -124,7 +125,10 @@ def load_dynamic_tools() -> list[BaseTool]:
 
 
 def _start_reminder_daemon() -> None:
-    """Daemon de recordatorios WhatsApp (una vez por proceso). Opcional: requiere Playwright."""
+    """Daemon de recordatorios WhatsApp (una vez por proceso). Opcional: requiere Playwright.
+    AIFORGE_DISABLE_REMINDERS=1 lo desactiva (demos, grabaciones, tests)."""
+    if os.environ.get("AIFORGE_DISABLE_REMINDERS", "").strip() == "1":
+        return
     try:
         from agents.reminder_agent import start_reminder_daemon
     except ImportError:

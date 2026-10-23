@@ -23,3 +23,20 @@ def test_prompt_mentions_every_subagent_tool():
 
     missing = [tool_name(a) for a, _, _ in SUBAGENTS if tool_name(a) not in ORCH_PROMPT]
     assert missing == []
+
+
+def test_reminder_daemon_can_be_disabled(monkeypatch):
+    import sys as _sys
+    import types
+
+    from agents import orchestrator_tools
+
+    started = []
+    fake = types.SimpleNamespace(start_reminder_daemon=lambda: started.append(True))
+    monkeypatch.setitem(_sys.modules, "agents.reminder_agent", fake)
+    monkeypatch.setenv("AIFORGE_DISABLE_REMINDERS", "1")
+    orchestrator_tools._start_reminder_daemon()
+    assert started == []
+    monkeypatch.delenv("AIFORGE_DISABLE_REMINDERS")
+    orchestrator_tools._start_reminder_daemon()
+    assert started == [True]
