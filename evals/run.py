@@ -20,7 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-SUITES = ("routing", "memory_gate", "rag")
+SUITES = ("routing", "grounding", "memory_gate", "rag")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -59,11 +59,13 @@ def check_ollama(base_url: str) -> None:
 
 def run_suite(name: str, items: list[dict], llm, include_private: bool, private_only: bool) -> dict:
     from evals import datasets
-    from evals.suites import memory_gate, rag, routing
+    from evals.suites import grounding, memory_gate, rag, routing
 
     progress = _progress(name)
     if name == "routing":
         return routing.run(llm, items, progress)
+    if name == "grounding":
+        return grounding.run(llm, items, progress)
     if name == "memory_gate":
         return memory_gate.run(llm, items, progress)
     doc_dirs = [] if private_only else [datasets.GENERIC_DIR / "rag_docs"]
@@ -73,9 +75,9 @@ def run_suite(name: str, items: list[dict], llm, include_private: bool, private_
 
 
 def summarize(name: str, result: dict) -> str:
-    from evals.suites import memory_gate, rag, routing
+    from evals.suites import grounding, memory_gate, rag, routing
 
-    return {"routing": routing, "memory_gate": memory_gate, "rag": rag}[name].summary(result)
+    return {"routing": routing, "grounding": grounding, "memory_gate": memory_gate, "rag": rag}[name].summary(result)
 
 
 def main(argv: list[str] | None = None) -> dict:
