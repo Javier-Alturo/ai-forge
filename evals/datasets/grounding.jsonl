@@ -1,0 +1,18 @@
+// Generic grounding eval. Fictional requests and canned agent results with facts the model cannot guess.
+// "tool": agents that may answer (all return "result"); "expected": strings the final answer must contain.
+{"text": "Muéstrame mis récords personales de sentadilla", "tool": ["fitness"], "result": "Récords de sentadilla: 1RM 137.5 kg (3 de septiembre), 5RM 118 kg.", "expected": ["137.5"]}
+{"text": "¿Qué rutina me toca hoy en el gimnasio?", "tool": ["fitness"], "result": "Hoy toca Pull: dominadas lastradas 4x6 con 12 kg, remo con barra 4x8, curl martillo 3x12.", "expected": ["dominadas", "remo"]}
+{"text": "¿Cuánto levanté en press banca la última sesión?", "tool": ["fitness"], "result": "Última sesión (lunes): press banca 3x5 con 72.5 kg.", "expected": ["72.5"]}
+{"text": "¿Qué tareas tengo pendientes hoy?", "tool": ["taskforge"], "result": "Pendientes hoy: 1) Revisar contrato con Proveedora Lumen. 2) Enviar factura 0457.", "expected": ["lumen", "0457"]}
+{"text": "¿Cuántos días de racha llevo en el hábito de leer?", "tool": ["taskforge"], "result": "Hábito 'Leer 20 minutos': racha actual de 23 días, mejor racha 41 días.", "expected": ["23"]}
+{"text": "¿Qué eventos tengo mañana?", "tool": ["calendar"], "result": "Mañana: 09:15 reunión con Lucía Ferrando (proyecto Atlas), 16:40 dentista.", "expected": ["09:15", "ferrando"]}
+{"text": "¿A qué hora es mi reunión del viernes?", "tool": ["calendar"], "result": "Viernes: 'Revisión de sprint' de 14:20 a 15:05.", "expected": ["14:20"]}
+{"text": "¿Tengo correos nuevos importantes?", "tool": ["email"], "result": "2 correos sin leer: 'Propuesta Orbitel - versión 3' de Martín Quiroga y 'Factura 8812 vencida' de Contabilidad Nexo.", "expected": ["orbitel", "8812"]}
+{"text": "¿Qué me dijo Martín en su último correo?", "tool": ["email"], "result": "Martín Quiroga (ayer): pide mover la entrega del prototipo al 19 de noviembre.", "expected": ["19 de noviembre"]}
+{"text": "¿Qué recuerdas sobre mi editor favorito?", "tool": ["memory"], "result": "Memoria: el usuario prefiere el editor Helix con el tema 'gruvbox'.", "expected": ["helix"]}
+{"text": "¿Qué decidimos sobre la base de datos del proyecto Atlas?", "tool": ["memory", "rag", "rag_query_obsidian", "obsidian"], "result": "Decisión (12 de agosto): Atlas usará PostgreSQL 16 con particionado mensual.", "expected": ["postgresql"]}
+{"text": "Busca en mis notas qué dice la guía de despliegue sobre el puerto del servidor", "tool": ["rag", "rag_query_obsidian", "obsidian"], "result": "Guía de despliegue: el servidor escucha en el puerto 8743 detrás de un proxy inverso.", "expected": ["8743"]}
+{"text": "¿Qué archivos hay en la carpeta de reportes?", "tool": ["file"], "result": "reportes/: resumen_q3.xlsx, ventas_octubre.csv, notas_kickoff.md", "expected": ["resumen_q3", "ventas_octubre"]}
+{"text": "¿Cuál es el último pull request abierto en el repo demo?", "tool": ["github", "mcp"], "result": "PR #58 'Add retry to webhook sender' abierto por dev-ana hace 2 horas.", "expected": ["58", "retry"]}
+{"text": "¿Cuántos leads nuevos encontró la última búsqueda de clientes?", "tool": ["marketing", "find_real_leads"], "result": "Última búsqueda: 7 leads nuevos, el mejor es 'Panadería Sol de Oro' con puntaje 86.", "expected": ["sol de oro"]}
+{"text": "Busca en internet cuándo sale la próxima versión de Python", "tool": ["web_search"], "result": "Resultado web (ficticio): la versión 3.15.2 está programada para el 4 de diciembre.", "expected": ["3.15.2"]}
