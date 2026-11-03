@@ -3,8 +3,8 @@
 ![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
-![Tests](https://img.shields.io/badge/tests-362-brightgreen)
-![Routing eval](https://img.shields.io/badge/routing%20eval-85.7%25-blue)
+![Tests](https://img.shields.io/badge/tests-389-brightgreen)
+![Routing eval](https://img.shields.io/badge/routing%20eval-90.8%25-blue)
 ![Agents](https://img.shields.io/badge/agents-17-purple)
 
 **AI-Forge** is a local AI orchestration system built with **LangGraph**. An orchestrator reads each request and hands it to one of 17 specialist agents, so the whole system works as one: it keeps long-term memory, acts on the user's machine and can even write new tools for itself.
@@ -298,7 +298,9 @@ python -m evals.run --suite routing --model qwen2.5:7b
 
 | Suite | Dataset | Metric | Result |
 |---|---|---|---|
-| Orchestrator routing | 42 requests across 23 tools | First tool chosen is correct | **85.7%** |
+| Orchestrator routing | 65 requests across 23 tools | First tool chosen is correct | **90.8%** |
+| Grounding | 16 requests, full tool loop with canned agent results | Right agent called and its facts in the answer | **93.8%** (15/16) |
+| | | Right agent called but its result ignored | **0%** |
 | MemoryGate | 50 turns (fact / preference / decision / event / ephemeral) | Type accuracy | **78.0%** |
 | | | EPHEMERAL leak rate (would store small talk; target 0%) | **10.0%** |
 | | | Store recall (useful turns actually stored) | **90.0%** |
@@ -307,9 +309,14 @@ python -m evals.run --suite routing --model qwen2.5:7b
 
 What the numbers show:
 
-- **Routing** fails on overlapping agents (a PyTorch request goes to the generic code agent, a
-  "remind me at 6 pm" goes to the calendar) and, worse, sometimes answers directly instead of
-  calling a tool ("show my squat PRs" → no tool, so the answer is invented).
+- **Routing** now fails mostly by answering directly when a tool was needed (5 of 6 misses). Treat
+  90.8% with care: this set helped choose the current prompt, and on the 23 requests added after
+  that comparison, the old and new prompts both scored about 83-87%.
+- **Garbled tool calls** were behind many "no tool" answers: `qwen2.5:14b` sometimes corrupts the
+  token that opens a call, so Ollama returns it as text, often with an invented result. These
+  calls are now recovered. Removing the tool list from the system prompt took errors from 12 to 0
+  in 188 runs, and running at temperature 0 avoids the extra skipped tools seen at Ollama's default
+  (routing 91% vs 83-85%).
 - **MemoryGate** is weakest on `event` (recall 0.5: half the events are filed as facts or
   dropped) and leaked one trivia question into long-term memory.
 - **RAG** is saturated on this small set — the next step is harder questions (facts split across

@@ -1,48 +1,48 @@
 {
-  "timestamp": "2026-10-09T09:14:49",
+  "timestamp": "2026-11-03T13:32:43",
   "model": "qwen2.5:14b",
-  "git_commit": "ba97546",
+  "git_commit": "05bdc1d",
   "uses_private_data": false,
   "suites": {
     "routing": {
-      "n": 42,
-      "accuracy": 0.857,
+      "n": 65,
+      "accuracy": 0.908,
       "per_class": {
         "brain": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 1
-        },
-        "calendar": {
-          "precision": 0.667,
-          "recall": 1.0,
-          "f1": 0.8,
           "support": 2
         },
-        "code": {
-          "precision": 0.6,
+        "calendar": {
+          "precision": 1.0,
           "recall": 1.0,
-          "f1": 0.75,
+          "f1": 1.0,
           "support": 3
+        },
+        "code": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 4
         },
         "computer_use": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 1
+          "support": 2
         },
         "email": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 2
+          "support": 3
         },
         "file": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 2
+          "support": 3
         },
         "find_real_leads": {
           "precision": 1.0,
@@ -52,109 +52,108 @@
         },
         "fitness": {
           "precision": 1.0,
-          "recall": 0.667,
-          "f1": 0.8,
-          "support": 3
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 4
         },
         "github": {
           "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "support": 1
+          "recall": 0.5,
+          "f1": 0.667,
+          "support": 2
         },
         "image": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 1
+          "support": 2
         },
         "marketing": {
+          "precision": 1.0,
+          "recall": 0.667,
+          "f1": 0.8,
+          "support": 3
+        },
+        "mcp": {
           "precision": 1.0,
           "recall": 0.5,
           "f1": 0.667,
           "support": 2
-        },
-        "mcp": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "support": 1
         },
         "memory": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 3
+          "support": 4
         },
         "morning_briefing": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 1
+          "support": 2
         },
         "neural_network": {
           "precision": 1.0,
-          "recall": 0.5,
-          "f1": 0.667,
-          "support": 2
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 3
         },
         "none": {
-          "precision": 0.6,
+          "precision": 0.5,
           "recall": 1.0,
-          "f1": 0.75,
-          "support": 3
+          "f1": 0.667,
+          "support": 5
         },
         "obsidian": {
           "precision": 1.0,
+          "recall": 0.667,
+          "f1": 0.8,
+          "support": 3
+        },
+        "rag": {
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.667,
+          "support": 2
+        },
+        "rag_query_obsidian": {
+          "precision": 0.5,
+          "recall": 0.5,
+          "f1": 0.5,
+          "support": 2
+        },
+        "skillforge": {
+          "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
           "support": 2
         },
-        "rag": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "support": 1
-        },
-        "rag_query_obsidian": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "support": 1
-        },
-        "skillforge": {
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "support": 1
-        },
         "taskforge": {
           "precision": 1.0,
-          "recall": 0.5,
-          "f1": 0.667,
-          "support": 4
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 5
         },
         "voice": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 1
+          "support": 2
         },
         "web_search": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 3
+          "support": 4
         }
       },
       "confusion": {
         "brain": {
-          "brain": 1,
+          "brain": 2,
           "calendar": 0,
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -176,11 +175,10 @@
         },
         "calendar": {
           "brain": 0,
-          "calendar": 2,
+          "calendar": 3,
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -203,10 +201,9 @@
         "code": {
           "brain": 0,
           "calendar": 0,
-          "code": 3,
+          "code": 4,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -230,9 +227,8 @@
           "brain": 0,
           "calendar": 0,
           "code": 0,
-          "computer_use": 1,
+          "computer_use": 2,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -257,34 +253,7 @@
           "calendar": 0,
           "code": 0,
           "computer_use": 0,
-          "email": 2,
-          "error": 0,
-          "file": 0,
-          "find_real_leads": 0,
-          "fitness": 0,
-          "github": 0,
-          "image": 0,
-          "marketing": 0,
-          "mcp": 0,
-          "memory": 0,
-          "morning_briefing": 0,
-          "neural_network": 0,
-          "none": 0,
-          "obsidian": 0,
-          "rag": 0,
-          "rag_query_obsidian": 0,
-          "skillforge": 0,
-          "taskforge": 0,
-          "voice": 0,
-          "web_search": 0
-        },
-        "error": {
-          "brain": 0,
-          "calendar": 0,
-          "code": 0,
-          "computer_use": 0,
-          "email": 0,
-          "error": 0,
+          "email": 3,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -310,8 +279,7 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
-          "file": 2,
+          "file": 3,
           "find_real_leads": 0,
           "fitness": 0,
           "github": 0,
@@ -336,7 +304,6 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 1,
           "fitness": 0,
@@ -362,37 +329,10 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
-          "fitness": 2,
+          "fitness": 4,
           "github": 0,
-          "image": 0,
-          "marketing": 0,
-          "mcp": 0,
-          "memory": 0,
-          "morning_briefing": 0,
-          "neural_network": 0,
-          "none": 1,
-          "obsidian": 0,
-          "rag": 0,
-          "rag_query_obsidian": 0,
-          "skillforge": 0,
-          "taskforge": 0,
-          "voice": 0,
-          "web_search": 0
-        },
-        "github": {
-          "brain": 0,
-          "calendar": 0,
-          "code": 0,
-          "computer_use": 0,
-          "email": 0,
-          "error": 0,
-          "file": 0,
-          "find_real_leads": 0,
-          "fitness": 0,
-          "github": 1,
           "image": 0,
           "marketing": 0,
           "mcp": 0,
@@ -408,18 +348,42 @@
           "voice": 0,
           "web_search": 0
         },
+        "github": {
+          "brain": 0,
+          "calendar": 0,
+          "code": 0,
+          "computer_use": 0,
+          "email": 0,
+          "file": 0,
+          "find_real_leads": 0,
+          "fitness": 0,
+          "github": 1,
+          "image": 0,
+          "marketing": 0,
+          "mcp": 0,
+          "memory": 0,
+          "morning_briefing": 0,
+          "neural_network": 0,
+          "none": 1,
+          "obsidian": 0,
+          "rag": 0,
+          "rag_query_obsidian": 0,
+          "skillforge": 0,
+          "taskforge": 0,
+          "voice": 0,
+          "web_search": 0
+        },
         "image": {
           "brain": 0,
           "calendar": 0,
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
           "github": 0,
-          "image": 1,
+          "image": 2,
           "marketing": 0,
           "mcp": 0,
           "memory": 0,
@@ -440,13 +404,12 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
           "github": 0,
           "image": 0,
-          "marketing": 1,
+          "marketing": 2,
           "mcp": 0,
           "memory": 0,
           "morning_briefing": 0,
@@ -466,7 +429,6 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -477,7 +439,7 @@
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
-          "none": 0,
+          "none": 1,
           "obsidian": 0,
           "rag": 0,
           "rag_query_obsidian": 0,
@@ -492,7 +454,6 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -500,7 +461,7 @@
           "image": 0,
           "marketing": 0,
           "mcp": 0,
-          "memory": 3,
+          "memory": 4,
           "morning_briefing": 0,
           "neural_network": 0,
           "none": 0,
@@ -518,7 +479,6 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -527,7 +487,7 @@
           "marketing": 0,
           "mcp": 0,
           "memory": 0,
-          "morning_briefing": 1,
+          "morning_briefing": 2,
           "neural_network": 0,
           "none": 0,
           "obsidian": 0,
@@ -541,10 +501,9 @@
         "neural_network": {
           "brain": 0,
           "calendar": 0,
-          "code": 1,
+          "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -554,7 +513,7 @@
           "mcp": 0,
           "memory": 0,
           "morning_briefing": 0,
-          "neural_network": 1,
+          "neural_network": 3,
           "none": 0,
           "obsidian": 0,
           "rag": 0,
@@ -570,7 +529,6 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -581,7 +539,7 @@
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
-          "none": 3,
+          "none": 5,
           "obsidian": 0,
           "rag": 0,
           "rag_query_obsidian": 0,
@@ -596,7 +554,6 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -607,7 +564,7 @@
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
-          "none": 0,
+          "none": 1,
           "obsidian": 2,
           "rag": 0,
           "rag_query_obsidian": 0,
@@ -622,7 +579,6 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -636,7 +592,7 @@
           "none": 0,
           "obsidian": 0,
           "rag": 1,
-          "rag_query_obsidian": 0,
+          "rag_query_obsidian": 1,
           "skillforge": 0,
           "taskforge": 0,
           "voice": 0,
@@ -648,7 +604,6 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -659,7 +614,7 @@
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
-          "none": 0,
+          "none": 1,
           "obsidian": 0,
           "rag": 0,
           "rag_query_obsidian": 1,
@@ -671,10 +626,9 @@
         "skillforge": {
           "brain": 0,
           "calendar": 0,
-          "code": 1,
+          "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -689,18 +643,17 @@
           "obsidian": 0,
           "rag": 0,
           "rag_query_obsidian": 0,
-          "skillforge": 0,
+          "skillforge": 2,
           "taskforge": 0,
           "voice": 0,
           "web_search": 0
         },
         "taskforge": {
           "brain": 0,
-          "calendar": 1,
+          "calendar": 0,
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 1,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -716,7 +669,7 @@
           "rag": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
-          "taskforge": 2,
+          "taskforge": 5,
           "voice": 0,
           "web_search": 0
         },
@@ -726,7 +679,6 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -743,7 +695,7 @@
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
-          "voice": 1,
+          "voice": 2,
           "web_search": 0
         },
         "web_search": {
@@ -752,7 +704,6 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "error": 0,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -770,43 +721,10 @@
           "skillforge": 0,
           "taskforge": 0,
           "voice": 0,
-          "web_search": 3
+          "web_search": 4
         }
       },
       "errors": [
-        {
-          "text": "Diseña una red neuronal pequeña en PyTorch y entrénala con datos sintéticos",
-          "expected": [
-            "neural_network"
-          ],
-          "predicted": "code",
-          "source": "generic"
-        },
-        {
-          "text": "Muéstrame mis récords personales de sentadilla",
-          "expected": [
-            "fitness"
-          ],
-          "predicted": "none",
-          "source": "generic"
-        },
-        {
-          "text": "¿Cómo voy con mis metas de esta semana?",
-          "expected": [
-            "taskforge"
-          ],
-          "predicted": "error",
-          "source": "generic"
-        },
-        {
-          "text": "Recuérdame a las 6 pm llamar al dentista",
-          "expected": [
-            "taskforge",
-            "memory"
-          ],
-          "predicted": "calendar",
-          "source": "generic"
-        },
         {
           "text": "Escríbeme un mensaje de outreach para una clínica que quiere un chatbot",
           "expected": [
@@ -816,15 +734,77 @@
           "source": "generic"
         },
         {
-          "text": "Crea una herramienta nueva y permanente que convierta grados Celsius a Fahrenheit",
+          "text": "Muéstrame los pull requests abiertos del repositorio demo",
           "expected": [
-            "skillforge"
+            "github",
+            "mcp"
           ],
-          "predicted": "code",
+          "predicted": "none",
+          "source": "generic"
+        },
+        {
+          "text": "Según mis documentos indexados, ¿qué dice el manual de instalación?",
+          "expected": [
+            "rag"
+          ],
+          "predicted": "rag_query_obsidian",
+          "source": "generic"
+        },
+        {
+          "text": "Crea una nota en Obsidian con la lista de compras",
+          "expected": [
+            "obsidian"
+          ],
+          "predicted": "none",
+          "source": "generic"
+        },
+        {
+          "text": "Haz un commit local con los cambios de esta rama",
+          "expected": [
+            "mcp"
+          ],
+          "predicted": "none",
+          "source": "generic"
+        },
+        {
+          "text": "¿Cómo funciona el MemoryGate de AI-Forge según las notas del proyecto?",
+          "expected": [
+            "rag_query_obsidian",
+            "obsidian"
+          ],
+          "predicted": "none",
           "source": "generic"
         }
       ],
-      "seconds": 49.3
+      "seconds": 53.8
+    },
+    "grounding": {
+      "n": 16,
+      "grounding_rate": 0.938,
+      "ignore_rate": 0.0,
+      "outcomes": {
+        "grounded": 15,
+        "ignored": 0,
+        "wrong_tool": 1,
+        "no_tool": 0,
+        "error": 0
+      },
+      "failures": [
+        {
+          "text": "¿Cuántos leads nuevos encontró la última búsqueda de clientes?",
+          "tool": [
+            "marketing",
+            "find_real_leads"
+          ],
+          "outcome": "wrong_tool",
+          "called": [
+            "memory"
+          ],
+          "answer": "No se encontraron registros específicos de la última búsqueda de clientes en la memoria actual. ¿Podrías proporcionar más detalles sobre cuándo se realizó la búsqueda o en qué plataforma fue ejecutada para ayudar a localizar la información más precisamente?",
+          "source": "generic"
+        }
+      ],
+      "seconds": 19.3
     },
     "memory_gate": {
       "n": 50,
@@ -979,7 +959,7 @@
           "source": "generic"
         }
       ],
-      "seconds": 36.0
+      "seconds": 42.5
     },
     "rag": {
       "n_answerable": 20,
@@ -1007,7 +987,7 @@
         },
         {
           "question": "¿Qué día de la semana cierra Órbita Café?",
-          "answer": "Órbita Café cierra los lunes por mantenimiento de la tostadora.",
+          "answer": "Órbita Café cierra los lunes para mantenimiento de la tostadora.",
           "source": "generic"
         },
         {
@@ -1022,7 +1002,7 @@
         },
         {
           "question": "¿Cuántos cafés hay que comprar en Órbita Café para recibir uno gratis?",
-          "answer": "Para recibir un café gratis en Órbita Café, se deben comprar 10 cafés.",
+          "answer": "Para recibir un café gratis en Órbita Café, se debe comprar 10 cafés.",
           "source": "generic"
         },
         {
@@ -1062,7 +1042,7 @@
         },
         {
           "question": "¿Con cuánta anticipación se deben pedir las vacaciones en Acme Labs?",
-          "answer": "Se deben solicitar las vacaciones con al menos 15 días de anticipación a través del portal interno.",
+          "answer": "Las vacaciones deben solicitarse con al menos 15 días de anticipación a través del portal interno.",
           "source": "generic"
         },
         {
@@ -1072,7 +1052,7 @@
         },
         {
           "question": "¿Qué días se permite trabajar desde casa en Acme Labs?",
-          "answer": "En Acme Labs, se permite trabajar desde casa los martes y los jueves. Para cualquier otro día, se necesita la aprobación del líder del equipo.",
+          "answer": "En Acme Labs, se permite trabajar desde casa los martes y los jueves sin necesidad de aprobación adicional. Para trabajar remoto en otros días, se requiere la aprobación del líder del equipo.",
           "source": "generic"
         },
         {
@@ -1087,12 +1067,12 @@
         },
         {
           "question": "¿Cuánto queso lleva la receta de arepas?",
-          "answer": "La receta indica que se necesitan 200 gramos de queso campesino rallado para hacer las arepas de queso.",
+          "answer": "La receta de arepas de queso indica que se deben usar 200 gramos de queso campesino rallado.",
           "source": "generic"
         },
         {
           "question": "¿Cuál es el salario del líder técnico de Atlas?",
-          "answer": "El documento no proporciona información sobre el salario del líder técnico de Atlas.",
+          "answer": "El salario del líder técnico de Atlas no se especifica en la información proporcionada.",
           "source": "generic"
         },
         {
@@ -1102,22 +1082,22 @@
         },
         {
           "question": "¿Cuántas calorías tiene una arepa de queso de la receta?",
-          "answer": "La información proporcionada en la receta no incluye el número de calorías por arepa de queso. Para obtener esa información, sería necesario analizar los ingredientes y calcular las calorías individualmente o consultar una fuente que proporcione esa información específica.",
+          "answer": "El documento proporcionado no incluye información sobre el número de calorías por arepa de queso. La receta proporciona los ingredientes y el método de preparación, pero no menciona el valor calórico por unidad.",
           "source": "generic"
         },
         {
           "question": "¿Órbita Café hace envíos a domicilio a Bogotá?",
-          "answer": "El contexto proporcionado no incluye información sobre si Órbita Café realiza envíos a domicilio a Bogotá.",
+          "answer": "El documento no proporciona información sobre si Órbita Café realiza envíos a domicilio a Bogotá.",
           "source": "generic"
         },
         {
           "question": "¿Qué versión de Redis usa el proyecto Atlas?",
-          "answer": "El documento técnico no especifica la versión particular de Redis que utiliza el proyecto Atlas.",
+          "answer": "El documento técnico del proyecto Atlas no especifica la versión particular de Redis que se utiliza en la plataforma.",
           "source": "generic"
         }
       ],
       "n_documents": 4,
-      "seconds": 27.1
+      "seconds": 42.8
     }
   }
 }
