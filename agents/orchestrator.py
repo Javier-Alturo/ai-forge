@@ -17,6 +17,7 @@ from agents.logger import get_logger, set_trace_id
 from agents.message_utils import extract_final_ai_text
 from agents.orchestrator_tools import build_orchestrator_tools
 from agents.subagent_runner import get_model_router, invoke_subagent
+from core.tool_call_repair import repair_message
 from observability.tracing import with_tracing
 
 # Alias de compatibilidad (tests y código antiguo usan los nombres privados)
@@ -98,8 +99,20 @@ def get_orchestrator_graph():
             prompt=ORCH_PROMPT,
             name="orchestrator_agent",
             checkpointer=_CHECKPOINTER,
+            post_model_hook=make_repair_hook([tool.name for tool in base_tools]),
         )
     return _ORCHESTRATOR
+
+
+def make_repair_hook(tool_names: list[str]):
+    """Graph node run after each LLM turn: a tool call written as text becomes a real one."""
+
+    def repair_tool_calls(state: dict[str, Any]) -> dict[str, Any]:
+        last = state["messages"][-1]
+        fixed = repair_message(last, tool_names) if isinstance(last, AIMessage) else last
+        return {"messages": [fixed] if fixed is not last else []}
+
+    return repair_tool_calls
 
 
 _BACKGROUND: list[threading.Thread] = []
