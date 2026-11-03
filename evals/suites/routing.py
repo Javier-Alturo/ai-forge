@@ -9,11 +9,12 @@ Labels: sub-agent key (e.g. "taskforge"), a direct tool name, or "none" (answers
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from typing import Callable, Iterable
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.tools import BaseTool, StructuredTool
 
+from core.tool_call_repair import repair_message
 from evals import metrics
 
 log = logging.getLogger("ai_forge.evals")
@@ -44,13 +45,15 @@ def build_tool_specs() -> list[BaseTool]:
     return specs + [find_real_leads, rag_query_obsidian, rag_index_obsidian_vault]
 
 
-def predict(bound_llm, system_prompt: str, text: str) -> str:
+def predict(bound_llm, system_prompt: str, text: str, tool_names: Iterable[str] = ()) -> str:
     """First tool label, "none" for a direct answer, or "error" if the model call fails."""
     try:
         msg = bound_llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=text)])
     except Exception:  # one bad generation (e.g. Ollama repeat limit) must not abort the whole eval
         log.exception("Routing prediction failed for %r", text[:60])
         return "error"
+    if isinstance(msg, AIMessage):
+        msg = repair_message(msg, tool_names)
     calls = getattr(msg, "tool_calls", None) or []
     return label_for_tool(calls[0]["name"]) if calls else "none"
 
@@ -77,10 +80,12 @@ def score(items: list[dict], preds: list[str]) -> dict:
 def run(llm, items: list[dict], progress: Callable[[int, int], None] | None = None) -> dict:
     from agents.orchestrator import ORCH_PROMPT
 
-    bound = llm.bind_tools(build_tool_specs())
+    specs = build_tool_specs()
+    bound = llm.bind_tools(specs)
+    tool_names = [spec.name for spec in specs]
     preds = []
     for i, item in enumerate(items, start=1):
-        preds.append(predict(bound, ORCH_PROMPT, item["text"]))
+        preds.append(predict(bound, ORCH_PROMPT, item["text"], tool_names))
         if progress:
             progress(i, len(items))
     return score(items, preds)
