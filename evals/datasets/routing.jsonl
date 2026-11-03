@@ -41,3 +41,26 @@
 {"text": "Analiza mis notas recientes y genérame insights para un newsletter", "expected": ["brain"]}
 {"text": "Genera mi Morning Briefing de hoy", "expected": ["morning_briefing"]}
 {"text": "Crea una herramienta nueva y permanente que convierta grados Celsius a Fahrenheit", "expected": ["skillforge"]}
+{"text": "¿Qué noticias hay hoy sobre inteligencia artificial?", "expected": ["web_search"]}
+{"text": "Guarda que mi color favorito para gráficas es el verde", "expected": ["memory"]}
+{"text": "Calcula con Python la suma de los cuadrados del 1 al 100", "expected": ["code"]}
+{"text": "Entrena una red convolucional simple en PyTorch con datos de ejemplo", "expected": ["neural_network"]}
+{"text": "Registra que hoy hice peso muerto 3x5 con 100 kg", "expected": ["fitness"]}
+{"text": "Agrega la tarea de pagar el arriendo para el viernes", "expected": ["taskforge"]}
+{"text": "Busca leads en Upwork de gente que necesite un chatbot", "expected": ["marketing", "find_real_leads"]}
+{"text": "Lee el archivo reporte.txt de la carpeta de trabajo", "expected": ["file"]}
+{"text": "Busca correos de la semana pasada sobre facturas", "expected": ["email"]}
+{"text": "Crea un evento el jueves a las 3 pm llamado revisión", "expected": ["calendar"]}
+{"text": "Transcribe lo que voy a decir por el micrófono", "expected": ["voice"]}
+{"text": "Genera una imagen de un faro al atardecer", "expected": ["image"]}
+{"text": "Mira mi pantalla y dime qué aplicación tengo abierta", "expected": ["computer_use"]}
+{"text": "Muéstrame los pull requests abiertos del repositorio demo", "expected": ["github", "mcp"]}
+{"text": "Según mis documentos indexados, ¿qué dice el manual de instalación?", "expected": ["rag"]}
+{"text": "Crea una nota en Obsidian con la lista de compras", "expected": ["obsidian"]}
+{"text": "Dame insights de lo que escribí esta semana en mis notas", "expected": ["brain"]}
+{"text": "Prepárame el reporte de la mañana", "expected": ["morning_briefing"]}
+{"text": "Crea una skill permanente que convierta millas a kilómetros", "expected": ["skillforge"]}
+{"text": "Haz un commit local con los cambios de esta rama", "expected": ["mcp"]}
+{"text": "¿Cómo funciona el MemoryGate de AI-Forge según las notas del proyecto?", "expected": ["rag_query_obsidian", "obsidian"]}
+{"text": "Gracias, eso era todo", "expected": ["none"]}
+{"text": "¿Qué fue lo primero que te pregunté en esta conversación?", "expected": ["none"]}
