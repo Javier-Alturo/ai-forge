@@ -30,6 +30,8 @@ NAMES = [FITNESS, CALENDAR, OBSIDIAN]
     ('_icall_\n{"name": "rag_query_obsidian_agent", "arguments": {"question": "x"}}', OBSIDIAN, {"question": "x"}),
     (' علينй {"name": "orchestrator_consult_fitness_agent", "arguments": {"task": "x"}}', FITNESS, {"task": "x"}),
     ('{"name": "orchestrator_consult_fitness_agent", "arguments": {"task": "x"}}', FITNESS, {"task": "x"}),
+    ('_icall_local_function_orchestrator_consult_fitness_agent({"task": "x"})', FITNESS, {"task": "x"}),
+    (' sourceMapping_agent_consult_calendar_agent({"task": "x"})', CALENDAR, {"task": "x"}),
 ])
 def test_garbled_calls_are_parsed(text, name, args):
     call = parse_text_tool_call(text, NAMES)

@@ -34,6 +34,10 @@ def _resolve_name(name: str, tool_names: list[str]) -> str | None:
         return name
     if TOOL_PREFIX + name in tool_names:
         return TOOL_PREFIX + name
+    # The garbled token can be glued to the name: _icall_local_function_orchestrator_consult_mcp_agent
+    for tool in tool_names:
+        if name.endswith((tool, tool.removeprefix(TOOL_PREFIX))):
+            return tool
     close = difflib.get_close_matches(name, tool_names, n=1, cutoff=NAME_CUTOFF)
     return close[0] if close else None
 
