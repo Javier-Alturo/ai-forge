@@ -94,6 +94,11 @@ class TestCircuitBreaker:
             model, reason = router.get_model(100)
         assert router.cb.is_open is False
 
+    def test_local_model_uses_requested_temperature(self, router):
+        model, reason = router.get_model(100, temperature=0.0)
+        assert reason is None
+        assert model.temperature == 0.0
+
     def test_get_status_returns_dict(self, router):
         """get_status() debe retornar dict con todos los campos esperados."""
         status = router.get_status()

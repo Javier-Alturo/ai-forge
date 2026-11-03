@@ -17,12 +17,47 @@ def test_tool_table_names_are_unique_and_stable():
     assert "orchestrator_consult_web_search_agent" in names
 
 
-def test_prompt_mentions_every_subagent_tool():
+def test_subagent_tools_describe_themselves():
+    """The prompt does not list the tools, so each schema must say what its tool is for."""
     from agents.orchestrator import ORCH_PROMPT
     from agents.orchestrator_tools import SUBAGENTS, tool_name
 
-    missing = [tool_name(a) for a, _, _ in SUBAGENTS if tool_name(a) not in ORCH_PROMPT]
-    assert missing == []
+    assert all(description.strip() for _, _, description in SUBAGENTS)
+    assert [tool_name(a) for a, _, _ in SUBAGENTS if tool_name(a) in ORCH_PROMPT] == []
+
+
+def _aborting_graph(monkeypatch):
+    from ollama import ResponseError
+
+    from agents import orchestrator
+
+    class Graph:
+        def invoke(self, *_, **__):
+            raise ResponseError("prediction aborted, token repeat limit reached")
+
+        async def astream(self, *_, **__):
+            raise ResponseError("prediction aborted, token repeat limit reached")
+            yield  # makes this an async generator
+
+    monkeypatch.setattr(orchestrator, "get_orchestrator_graph", Graph)
+    monkeypatch.setattr(orchestrator, "_start_background", lambda *_: None)
+    return orchestrator
+
+
+def test_run_turn_survives_ollama_abort(monkeypatch):
+    orchestrator = _aborting_graph(monkeypatch)
+    assert orchestrator.run_turn("hola").content == orchestrator.MODEL_ERROR_MESSAGE
+
+
+def test_stream_survives_ollama_abort(monkeypatch):
+    import asyncio
+
+    orchestrator = _aborting_graph(monkeypatch)
+
+    async def collect():
+        return [chunk async for chunk in orchestrator.arun_turn_stream("hola")]
+
+    assert orchestrator.MODEL_ERROR_MESSAGE in "".join(asyncio.run(collect()))
 
 
 def test_reminder_daemon_can_be_disabled(monkeypatch):
