@@ -73,10 +73,13 @@ class ModelRouter:
         router_cfg = full_config.get("model_router", {})
         return cls(router_cfg)
 
-    def get_model(self, prompt_token_count: int = 0) -> Tuple[object, Optional[FallbackReason]]:
+    def get_model(
+        self, prompt_token_count: int = 0, temperature: Optional[float] = None
+    ) -> Tuple[object, Optional[FallbackReason]]:
         """
         Retorna (modelo, razón_de_fallback).
         razón_de_fallback es None si se usa local sin problemas.
+        `temperature` aplica al modelo local; None usa el valor por defecto de Ollama.
         """
         if self._should_use_cloud(prompt_token_count):
             reason = (
@@ -97,7 +100,7 @@ class ModelRouter:
                 )
             return self._get_cloud_model(), reason
 
-        return self._get_local_model(), None
+        return self._get_local_model(temperature), None
 
     def report_failure(self, reason: FallbackReason = FallbackReason.INFERENCE_ERROR) -> None:
         """Llamar desde el agente cuando el modelo falla."""
@@ -142,7 +145,7 @@ class ModelRouter:
             return f"Contexto {token_count} > máximo local {self.max_local_tokens}"
         return "desconocida"
 
-    def _get_local_model(self):
+    def _get_local_model(self, temperature: Optional[float] = None):
         import os
 
         from langchain_ollama import ChatOllama
@@ -151,6 +154,7 @@ class ModelRouter:
             model=self.local_model_name,
             base_url=base_url,
             timeout=self.local_timeout,
+            temperature=temperature,
         )
 
     def _get_cloud_model(self):

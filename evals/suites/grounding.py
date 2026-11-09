@@ -17,9 +17,10 @@ import logging
 from collections import Counter
 from typing import Callable
 
-from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool, StructuredTool
 
+from core.tool_call_repair import repair_message
 from evals.suites import rag, routing
 
 log = logging.getLogger("ai_forge.evals")
@@ -49,6 +50,8 @@ def run_item(llm, system_prompt: str, item: dict) -> dict:
     called: list[str] = []
     for _ in range(MAX_STEPS):
         msg = bound.invoke(messages)
+        if isinstance(msg, AIMessage):
+            msg = repair_message(msg, tools)
         messages.append(msg)
         calls = getattr(msg, "tool_calls", None) or []
         if not calls:

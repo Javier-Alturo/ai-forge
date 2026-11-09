@@ -10,6 +10,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.errors import GraphRecursionError
 from langgraph.prebuilt import create_react_agent
+from ollama import ResponseError
 
 from agents.a2a_log import a2a_log
 from agents.llm import OLLAMA_BASE, OLLAMA_MODEL, get_llm
@@ -17,6 +18,7 @@ from agents.logger import get_logger, set_trace_id
 from agents.message_utils import extract_final_ai_text
 from agents.orchestrator_tools import build_orchestrator_tools
 from agents.subagent_runner import get_model_router, invoke_subagent
+from core.tool_call_repair import repair_message
 from observability.tracing import with_tracing
 
 # Alias de compatibilidad (tests y código antiguo usan los nombres privados)
@@ -39,44 +41,20 @@ _ORCHESTRATOR: Any = None
 _CHECKPOINTER = MemorySaver()
 log = get_logger("orchestrator")
 
+# Same value the evals use. At Ollama's default it skips tools far more often (routing 91% vs 83-85%).
+ORCHESTRATOR_TEMPERATURE = 0.0
+
+MODEL_ERROR_MESSAGE = "El modelo local falló al generar la respuesta (por ejemplo, Ollama la cortó por repetición). Intenta de nuevo o reformula tu petición."
+
+# Short on purpose: tools describe themselves in their schemas. Repeating that list here made
+# qwen2.5:14b garble tool calls and hit Ollama's repeat limit (evals: 12 errors in 188 runs vs 0).
 ORCH_PROMPT = """Eres el ORQUESTADOR principal del sistema multi-agente (A2A con LangGraph).
 Responde al usuario en español.
 
-Herramientas internas (cada una invoca un grafo agente independiente):
-- orchestrator_consult_web_search_agent: información actual en internet, noticias, verificación externa.
-- orchestrator_consult_memory_agent: memoria persistente ChromaDB + embeddings (recordatorios, búsqueda semántica).
-- orchestrator_consult_code_agent: código Python general (stdlib por defecto), ejecución local.
-- orchestrator_consult_neural_network_agent: diseño de redes, código PyTorch, entrenamiento breve en CPU, métricas.
-- orchestrator_consult_fitness_agent: seguimiento de entrenamiento (PPL), PRs, sesiones, molestias, reportes semanales.
-- orchestrator_consult_taskforge_agent: sistema de productividad personal del usuario — tareas del dia, metas a largo plazo (ej: ingles B2), habitos diarios, recordatorios, metricas semanales e historial. USAR SIEMPRE para cualquier peticion sobre tareas, metas, habitos, recordatorios o productividad.
-- orchestrator_consult_marketing_agent: USAR SIEMPRE para buscar clientes/leads/trabajos/oportunidades en Upwork, Reddit o LinkedIn. También para research, copy, outreach y propuestas. Tiene un scraper real de Playwright y un sistema de Scoring para filtrar leads.
-- orchestrator_consult_file_agent: leer/escribir archivos, listar carpetas, mover/copiar, buscar por nombre o contenido.
-- orchestrator_consult_email_agent: Gmail en SOLO LECTURA (listar, buscar) con OAuth2. No puede enviar correos.
-- orchestrator_consult_calendar_agent: Google Calendar (eventos próximos, crear, borrar, buscar) con OAuth2.
-- orchestrator_consult_voice_agent: grabación por micrófono + transcripción Whisper local.
-- orchestrator_consult_image_agent: generación de imágenes Stable Diffusion (diffusers, GPU CUDA recomendada).
-- orchestrator_consult_computer_use_agent: PyAutoGUI + visión Ollama (llava): screenshot; clic/teclado/apps solo si el usuario lo habilitó.
-- orchestrator_consult_github_agent: API GitHub (repos, archivos, issues, PRs) con GITHUB_TOKEN.
-- orchestrator_consult_rag_agent: RAG LlamaIndex + Chroma sobre data/documents/.
-- orchestrator_consult_obsidian_agent: leer, escribir y buscar notas en el vault local de Obsidian del usuario.
-- orchestrator_consult_brain_agent: tu SEGUNDO CEREBRO. Analiza notas recientes de Obsidian y genera insights/newsletters.
-- orchestrator_consult_morning_briefing_agent: USAR para generar un reporte diario ("Morning Briefing") consolidado con tareas, clima, calendario, correos y noticias.
-- orchestrator_consult_skillforge_agent: crear y guardar una herramienta (skill) nueva y permanente.
-- orchestrator_consult_mcp_agent: git/GitHub (commits, ramas, diffs, PRs). Push y merge requieren aprobación humana.
-- rag_query_obsidian: consulta DIRECTA a la base de conocimiento de Obsidian (notas del proyecto, agentes, documentacion personal). Usala ANTES de delegar si el usuario pregunta sobre el proyecto, como funciona algo, o pide contexto.
-- rag_index_obsidian_vault: indexa el vault de Obsidian en Chroma (ejecutar una vez o cuando haya notas nuevas).
-
-Herramientas MCP (Model Context Protocol): si aparecen en tu lista, provienen de servidores MCP externos
-conectados por configuracion (suelen llevar prefijo del nombre del servidor, p.ej. demo_echo).
-Usalas cuando el usuario pida capacidades que esas tools declaren en su descripcion.
-
-Reglas:
-- MEMORIA DE CONVERSACIÓN: Tienes acceso al historial COMPLETO de esta sesión en tu contexto (todos los mensajes anteriores están en tu ventana de contexto). Si el usuario pregunta "¿qué te pregunté antes?", "¿qué dijiste?", "resume la conversación", "recuérdame X" — LEE TU PROPIO HISTORIAL DE MENSAJES y responde directamente. NUNCA uses herramientas para responder sobre la conversación actual.
-- Para saludos o preguntas triviales que no requieran datos externos ni ejecucion, responde directamente SIN herramientas.
-- Si el usuario pregunta sobre el proyecto AI-Forge, los agentes, herramientas o documentacion, usa PRIMERO rag_query_obsidian para obtener contexto relevante de las notas.
-- Si delegas, sintetiza al final la respuesta util; no dejes solo salidas crudas sin contexto.
-- Una peticion puede requerir varias herramientas en secuencia si es necesario.
-- REGLA CRÍTICA DE ROUTING: Si el usuario pide buscar "clientes", "leads", "trabajos", "oportunidades", "scraping de Upwork", "scraping de Reddit" o cualquier variación → usa SIEMPRE orchestrator_consult_marketing_agent. NUNCA uses orchestrator_consult_web_search_agent para leads de trabajo."""
+Usa la herramienta adecuada para responder.
+Si el usuario pregunta por lo dicho en esta conversación ("¿qué te pregunté antes?", "resume la conversación"), responde con tu historial de mensajes, SIN herramientas.
+Para saludos o preguntas triviales, responde directamente sin herramientas.
+Si delegas, sintetiza la respuesta final."""
 
 
 def get_orchestrator_graph():
@@ -85,12 +63,12 @@ def get_orchestrator_graph():
         base_tools = build_orchestrator_tools()
         router = get_model_router()
         try:
-            llm, reason = router.get_model(prompt_token_count=0)
+            llm, reason = router.get_model(prompt_token_count=0, temperature=ORCHESTRATOR_TEMPERATURE)
             if reason:
                 a2a_log("orchestrator", "model_router", "fallback", reason.value)
         except RuntimeError:
             # Cloud no disponible o deshabilitado — usar local directamente
-            llm = get_llm(temperature=0.12)
+            llm = get_llm(temperature=ORCHESTRATOR_TEMPERATURE)
 
         _ORCHESTRATOR = create_react_agent(
             llm,
@@ -98,8 +76,20 @@ def get_orchestrator_graph():
             prompt=ORCH_PROMPT,
             name="orchestrator_agent",
             checkpointer=_CHECKPOINTER,
+            post_model_hook=make_repair_hook([tool.name for tool in base_tools]),
         )
     return _ORCHESTRATOR
+
+
+def make_repair_hook(tool_names: list[str]):
+    """Graph node run after each LLM turn: a tool call written as text becomes a real one."""
+
+    def repair_tool_calls(state: dict[str, Any]) -> dict[str, Any]:
+        last = state["messages"][-1]
+        fixed = repair_message(last, tool_names) if isinstance(last, AIMessage) else last
+        return {"messages": [fixed] if fixed is not last else []}
+
+    return repair_tool_calls
 
 
 _BACKGROUND: list[threading.Thread] = []
@@ -156,6 +146,10 @@ def run_turn(user_text: str, thread_id: str = "default") -> AIMessage:
     except GraphRecursionError:
         a2a_log("orchestrator", "cli", "error", "Límite de recursión alcanzado (loops infinitos evitados).")
         body = "Error: Alcanzé el límite máximo de pasos de pensamiento para esta solicitud. Por favor, sé más específico o simplifica tu petición."
+    except ResponseError as e:
+        log.warning("Ollama aborted the turn: %s", e)
+        a2a_log("orchestrator", "cli", "error", str(e))
+        body = MODEL_ERROR_MESSAGE
 
     # MemoryGate: evaluar el turno en background sin bloquear la respuesta al usuario
     _start_background(_run_memory_gate, user_text, body)
@@ -204,6 +198,10 @@ async def arun_turn_stream(user_text: str, thread_id: str = "default") -> AsyncG
     except GraphRecursionError:
         a2a_log("orchestrator", "dashboard", "error", "Límite de recursión alcanzado.")
         yield "\n\nError: Alcanzé el límite máximo de pasos de pensamiento. Intenta de nuevo."
+    except ResponseError as e:
+        log.warning("Ollama aborted the turn: %s", e)
+        a2a_log("orchestrator", "dashboard", "error", str(e))
+        yield f"\n\n{MODEL_ERROR_MESSAGE}"
 
     # MemoryGate: evaluar el turno completo en background después del stream
     if full_response:
