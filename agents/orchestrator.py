@@ -6,7 +6,7 @@ import threading
 import uuid
 from typing import Any, AsyncGenerator
 
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.errors import GraphRecursionError
 from langgraph.prebuilt import create_react_agent
@@ -191,7 +191,10 @@ async def arun_turn_stream(user_text: str, thread_id: str = "default") -> AsyncG
             config=config,
             stream_mode="messages",
         ):
-            msg, _metadata = chunk
+            msg, metadata = chunk
+            # Only the orchestrator's own words: no sub-agent output and no raw tool results.
+            if metadata.get("subagent") or not isinstance(msg, AIMessageChunk):
+                continue
             for text in _text_parts(getattr(msg, "content", None)):
                 full_response.append(text)
                 yield text

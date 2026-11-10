@@ -77,3 +77,27 @@ def test_reminder_daemon_can_be_disabled(monkeypatch):
     monkeypatch.delenv("AIFORGE_DISABLE_REMINDERS")
     orchestrator_tools._start_reminder_daemon()
     assert started == [True]
+
+
+def test_stream_yields_only_the_orchestrators_own_text(monkeypatch):
+    import asyncio
+
+    from langchain_core.messages import AIMessageChunk, ToolMessage
+
+    from agents import orchestrator
+
+    class Graph:
+        async def astream(self, *_, **__):
+            yield AIMessageChunk(content="código interno"), {"subagent": "code"}
+            yield ToolMessage(content="resultado crudo", tool_call_id="c1"), {}
+            yield AIMessageChunk(content="Respuesta "), {}
+            yield AIMessageChunk(content="final."), {}
+
+    monkeypatch.setattr(orchestrator, "get_orchestrator_graph", Graph)
+    monkeypatch.setattr(orchestrator, "_start_background", lambda *_: None)
+
+    async def collect():
+        return [chunk async for chunk in orchestrator.arun_turn_stream("hola")]
+
+    assert "".join(asyncio.run(collect())) == "Respuesta final."
+
