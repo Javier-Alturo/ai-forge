@@ -62,7 +62,7 @@ def test_child_config_inherits_callbacks():
     parent = {"callbacks": ["cb"], "metadata": {"langfuse_session_id": "s"}, "tags": ["orchestrator"]}
     child = subagent_runner.child_config("fitness", parent)
     assert child["callbacks"] == ["cb"] and child["run_name"] == "subagent:fitness"
-    assert child["metadata"] == {"langfuse_session_id": "s"} and "agent:fitness" in child["tags"]
+    assert child["metadata"] == {"langfuse_session_id": "s", "subagent": "fitness"} and "agent:fitness" in child["tags"]
     assert subagent_runner.child_config("x", None) is None
 
 

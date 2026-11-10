@@ -62,7 +62,8 @@ def child_config(name: str, parent_config: dict | None) -> dict | None:
     return {
         "callbacks": parent_config["callbacks"],
         "run_name": f"subagent:{name}",
-        "metadata": dict(parent_config.get("metadata") or {}),
+        # "subagent" lets stream consumers tell this run's output from the orchestrator's own.
+        "metadata": {**(parent_config.get("metadata") or {}), "subagent": name},
         "tags": [*(parent_config.get("tags") or []), f"agent:{name}"],
     }
 
