@@ -23,6 +23,8 @@ def test_subagent_tools_describe_themselves():
     from agents.orchestrator_tools import SUBAGENTS, tool_name
 
     assert all(description.strip() for _, _, description in SUBAGENTS)
+    # Each one says when to use the tool, in the user's words.
+    assert [a for a, _, description in SUBAGENTS if "Úsalo" not in description] == []
     assert [tool_name(a) for a, _, _ in SUBAGENTS if tool_name(a) in ORCH_PROMPT] == []
 
 
