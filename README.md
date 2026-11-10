@@ -3,7 +3,7 @@
 ![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
-![Tests](https://img.shields.io/badge/tests-389-brightgreen)
+![Tests](https://img.shields.io/badge/tests-393-brightgreen)
 ![Routing eval](https://img.shields.io/badge/routing%20eval-90.5%25-blue)
 ![Agents](https://img.shields.io/badge/agents-17-purple)
 
@@ -394,6 +394,9 @@ Start the interactive dashboard:
 ```bash
 python dashboard/app.py
 ```
+
+Then open `http://localhost:8000/live` for the live view: the orchestrator and its 20 agents, with each
+delegation animated as it happens. "Play demo" runs a scripted turn without calling the model.
 
 Then open `http://localhost:8000` in your browser.
 
