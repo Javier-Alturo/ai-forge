@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-Forge Live</title>
+<style>
+  :root {
+    --bg: #0b0f17; --panel: #121826; --line: #1f2937; --edge: #223049; --text: #e6edf3; --muted: #8b949e;
+    --accent: #58a6ff; --accent2: #a78bfa; --ok: #3fb950; --bad: #ff7b72; --warn: #d29922;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 "Segoe UI", system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+  h1 span { color: var(--accent); }
+  .chip { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+  .chip b { color: var(--text); font-weight: 600; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); margin-right: 6px; }
+  .dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  header .spacer { flex: 1; }
+  button { font: inherit; color: var(--text); background: #1b2436; border: 1px solid var(--line); border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #06101f; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: default; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 390px; min-height: calc(100vh - 58px); }
+  .stage { position: relative; display: grid; place-items: center; padding: 8px; }
+  svg { width: 100%; max-height: calc(100vh - 76px); }
+  aside { border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+  section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  section h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 0 0 8px; }
+  #answer { min-height: 96px; max-height: 30vh; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+  #answer.empty { color: var(--muted); }
+  #answer .cursor { display: inline-block; width: 8px; height: 1em; background: var(--accent); vertical-align: -2px; animation: blink 1s steps(2) infinite; }
+  form { display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  input:focus { outline: none; border-color: var(--accent); }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .stat b { display: block; font-size: 20px; }
+  .stat span { font-size: 11px; color: var(--muted); }
+  #timeline { flex: 1; overflow: auto; padding: 8px 16px 16px; min-height: 160px; }
+  .ev { display: grid; grid-template-columns: 62px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 13px; animation: slide .35s ease-out; }
+  .ev time { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ev .who { font-weight: 600; }
+  .ev.call .who { color: var(--accent); } .ev.done .who { color: var(--ok); } .ev.err .who { color: var(--bad); } .ev.user .who { color: var(--accent2); }
+  .ev p { margin: 2px 0 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .edge { stroke: var(--edge); stroke-width: 1.5; transition: stroke .3s, stroke-width .3s; }
+  .edge.live { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 6 8; animation: flow .6s linear infinite; }
+  .edge.back { stroke: var(--ok); stroke-width: 2.5; }
+  .node circle.body { fill: #141c2c; stroke: var(--edge); stroke-width: 2; transition: stroke .3s, fill .3s; }
+  .node text { fill: var(--muted); font-size: 13px; text-anchor: middle; transition: fill .3s; }
+  .node .ms { font-size: 11px; fill: var(--ok); opacity: 0; transition: opacity .3s; }
+  .node .ring { fill: none; stroke: var(--accent); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+  .node.working circle.body { stroke: var(--accent); fill: #13233d; }
+  .node.working text.label { fill: var(--text); }
+  .node.working .ring { animation: ping 1.2s ease-out infinite; }
+  .node.done circle.body { stroke: var(--ok); fill: #12301c; }
+  .node.done .ms, .node.error .ms { opacity: 1; }
+  .node.error circle.body { stroke: var(--bad); fill: #3a1512; } .node.error .ms { fill: var(--bad); }
+  .node.used circle.body { stroke: #3b5b86; }
+  #core circle.body { fill: #101a2e; stroke: var(--accent2); stroke-width: 3; }
+  #core text { fill: var(--text); font-size: 17px; font-weight: 600; text-anchor: middle; }
+  #core .sub { font-size: 12px; font-weight: 400; fill: var(--muted); }
+  #core .halo { fill: none; stroke: var(--accent2); stroke-width: 2; stroke-dasharray: 10 14; opacity: .25; transform-box: fill-box; transform-origin: center; animation: spin 14s linear infinite; }
+  #core.busy .halo { opacity: 1; animation-duration: 2.2s; }
+  .packet { fill: #fff; filter: drop-shadow(0 0 6px var(--accent)); }
+  .packet.back { filter: drop-shadow(0 0 6px var(--ok)); }
+
+  @keyframes flow { to { stroke-dashoffset: -14; } }
+  @keyframes ping { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(1.9); opacity: 0; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes slide { from { opacity: 0; transform: translateY(-6px); } }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } aside { border-left: 0; border-top: 1px solid var(--line); } svg { max-height: 62vh; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>AI-<span>Forge</span> Live</h1>
+  <span class="chip"><span class="dot" id="conn"></span><span id="connText">connecting</span></span>
+  <span class="chip">model <b id="model">…</b></span>
+  <span class="chip" id="gpu">GPU …</span>
+  <span class="spacer"></span>
+  <button id="demo" title="Plays a scripted turn. No model is called.">Play demo</button>
+</header>
+<main>
+  <div class="stage">
+    <svg id="graph" viewBox="0 0 860 860" role="img" aria-label="Orchestrator and its agents">
+      <g id="edges"></g><g id="packets"></g><g id="nodes"></g>
+      <g id="core" class="node" transform="translate(430 430)">
+        <circle class="halo" r="78"/><circle class="body" r="62"/>
+        <text y="-2">Orchestrator</text><text class="sub" y="18" id="coreState">idle</text>
+      </g>
+    </svg>
+  </div>
+  <aside>
+    <section>
+      <h2>Ask</h2>
+      <form id="ask"><input id="q" placeholder="Calcula el factorial de 20" autocomplete="off"><button class="primary" id="send">Send</button></form>
+    </section>
+    <section>
+      <h2>Answer</h2>
+      <div id="answer" class="empty">The answer streams here.</div>
+    </section>
+    <section>
+      <div class="stats">
+        <div class="stat"><b id="sTurns">0</b><span>turns</span></div>
+        <div class="stat"><b id="sCalls">0</b><span>agent calls</span></div>
+        <div class="stat"><b id="sAvg">–</b><span>avg agent time</span></div>
+      </div>
+    </section>
+    <section style="border-bottom:0;padding-bottom:0"><h2>Timeline</h2></section>
+    <div id="timeline"></div>
+  </aside>
+</main>
+<script>
+// [registry name used in the A2A log, label]
+const AGENTS = [["web_search","Web search"],["memory","Memory"],["code","Code"],["neural_network","Neural nets"],["fitness","Fitness"],
+  ["taskforge","Tasks"],["marketing","Marketing"],["file","Files"],["email","Email"],["calendar","Calendar"],["voice","Voice"],
+  ["image","Images"],["computer_use","Screen"],["github","GitHub"],["rag","Documents"],["obsidian","Obsidian"],["brain","Brain"],
+  ["morning_briefing","Briefing"],["skillforge","Skills"],["mcp_agent","Git (MCP)"]];
+const ALIAS = { lead_scraper: "marketing", mcp: "mcp_agent" };
+const NS = "http://www.w3.org/2000/svg", C = 430, R = 330;
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, text) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (text != null) n.textContent = text; return n; };
+const nodes = {};
+let calls = 0, turns = 0, totalMs = 0, timed = 0, demoRunning = false;
+
+AGENTS.forEach(([id, label], i) => {
+  const a = (i / AGENTS.length) * 2 * Math.PI - Math.PI / 2, x = C + R * Math.cos(a), y = C + R * Math.sin(a);
+  const edge = el("line", { class: "edge", x1: C, y1: C, x2: x, y2: y }); $("edges").appendChild(edge);
+  const g = el("g", { class: "node", transform: `translate(${x} ${y})` });
+  g.append(el("circle", { class: "ring", r: 30 }), el("circle", { class: "body", r: 30 }),
+    el("text", { class: "label", y: 50 }, label), el("text", { class: "ms", y: 5 }, ""));
+  $("nodes").appendChild(g);
+  nodes[id] = { g, edge, x, y, label, ms: g.querySelector(".ms"), started: 0, timer: null };
+});
+
+function packet(n, back) {
+  const p = el("circle", { class: "packet" + (back ? " back" : ""), r: 6 }); $("packets").appendChild(p);
+  const t0 = performance.now(), dur = 650;
+  (function step(t) {
+    let k = Math.min(1, (t - t0) / dur); k = k * k * (3 - 2 * k); if (back) k = 1 - k;
+    p.setAttribute("cx", C + (n.x - C) * k); p.setAttribute("cy", C + (n.y - C) * k);
+    if (t - t0 < dur) requestAnimationFrame(step); else p.remove();
+  })(t0);
+}
+function setState(n, state) { n.g.classList.remove("working", "done", "error"); if (state) n.g.classList.add(state); }
+function event(kind, who, detail) {
+  const row = document.createElement("div"); row.className = "ev " + kind;
+  const time = document.createElement("time"); time.textContent = new Date().toLocaleTimeString([], { hour12: false });
+  const body = document.createElement("div"), w = document.createElement("span"); w.className = "who"; w.textContent = who; body.appendChild(w);
+  if (detail) { const p = document.createElement("p"); p.textContent = detail; p.title = detail; body.appendChild(p); }
+  row.append(time, body); $("timeline").prepend(row);
+  while ($("timeline").children.length > 80) $("timeline").lastChild.remove();
+}
+function busy(on, label) { $("core").classList.toggle("busy", on); $("coreState").textContent = label || (on ? "thinking" : "idle"); }
+function stats() { $("sTurns").textContent = turns; $("sCalls").textContent = calls; $("sAvg").textContent = timed ? (totalMs / timed / 1000).toFixed(1) + "s" : "–"; }
+
+function startTurn(text) {
+  turns++; stats(); busy(true); event("user", "You", text);
+  for (const id in nodes) { setState(nodes[id]); nodes[id].ms.textContent = ""; nodes[id].edge.classList.remove("back"); }
+}
+function dispatch(id, task) {
+  const n = nodes[ALIAS[id] || id]; if (!n) return;
+  calls++; stats(); busy(true, "delegating"); packet(n, false);
+  n.edge.classList.remove("back"); n.edge.classList.add("live"); n.g.classList.add("used"); setState(n, "working");
+  n.started = performance.now(); clearInterval(n.timer);
+  n.timer = setInterval(() => { n.ms.textContent = ((performance.now() - n.started) / 1000).toFixed(0) + "s"; n.ms.style.opacity = 1; }, 500);
+  event("call", "→ " + n.label, task);
+}
+function finish(id, detail, failed) {
+  const n = nodes[ALIAS[id] || id]; if (!n) return;
+  clearInterval(n.timer); n.ms.style.opacity = "";
+  const m = /^\[(\d+)ms\]\s*(.*)$/.exec(detail || ""), ms = m ? +m[1] : Math.round(performance.now() - n.started);
+  if (!failed) { totalMs += ms; timed++; stats(); packet(n, true); }
+  n.edge.classList.remove("live"); n.edge.classList.toggle("back", !failed); setState(n, failed ? "error" : "done");
+  n.ms.textContent = failed ? "error" : (ms / 1000).toFixed(1) + "s"; busy(true, "writing");
+  event(failed ? "err" : "done", "← " + n.label, m ? m[2] : detail);
+}
+// Line format (agents/a2a_log.py): [A2A HH:MM:SS UTC] [trace] source -> target | action | detail
+function handleLine(line) {
+  const m = /\]\s+(\S+) -> (\S+) \| (\w+)(?: \| (.*))?$/.exec(line); if (!m) return;
+  const [, src, dst, action, detail] = m;
+  if (action === "stream_message" || action === "user_message") startTurn(detail || "");
+  else if (action === "invoke_subgraph" || action === "find_real_leads") dispatch(dst, detail);
+  else if (action === "subgraph_done") finish(src, detail, false);
+  else if (action === "subgraph_error" || action === "timeout_hard") finish(src, detail, true);
+  else if (action === "error") { busy(false); event("err", "Orchestrator", detail); }
+}
+
+// Answer stream. The chat socket sends text chunks and then an END sentinel.
+const END = "\x00END\x00", answer = $("answer");
+let buffer = "";
+function render(done) {
+  answer.classList.remove("empty"); answer.textContent = buffer;
+  if (!done) { const c = document.createElement("span"); c.className = "cursor"; answer.appendChild(c); }
+  answer.scrollTop = answer.scrollHeight;
+}
+function chunk(data) { if (data === END) { render(true); busy(false); $("send").disabled = false; } else { buffer += data; render(false); } }
+
+const proto = location.protocol === "https:" ? "wss" : "ws";
+let chat, live = false;
+function connect() {
+  const logs = new WebSocket(`${proto}://${location.host}/ws/logs`);
+  logs.onopen = () => { live = true; $("conn").classList.add("on"); $("connText").textContent = "live"; };
+  logs.onmessage = (e) => { if (!demoRunning) handleLine(e.data); };
+  logs.onclose = () => { live = false; $("conn").classList.remove("on"); $("connText").textContent = "offline"; setTimeout(connect, 3000); };
+  chat = new WebSocket(`${proto}://${location.host}/ws/chat/live-${Math.random().toString(36).slice(2, 10)}`);
+  chat.onmessage = (e) => chunk(e.data);
+}
+$("ask").addEventListener("submit", (e) => {
+  e.preventDefault(); const text = $("q").value.trim();
+  if (!text || !chat || chat.readyState !== 1) return;
+  buffer = ""; render(false); $("send").disabled = true; chat.send(text); $("q").value = "";
+});
+
+// Scripted turn for screenshots and for viewing the page without the model running.
+$("demo").addEventListener("click", async () => {
+  if (demoRunning) return; demoRunning = true; $("demo").disabled = true;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms)), say = (l) => handleLine("[A2A 00:00:00 UTC] [demo] " + l);
+  buffer = ""; render(false);
+  say("dashboard -> orchestrator | stream_message | Calcula el factorial de 20 y guárdalo en una nota"); await wait(1100);
+  say("orchestrator -> code | invoke_subgraph | calcular el factorial de 20"); await wait(2600);
+  say("code -> orchestrator | subgraph_done | [2480ms] El factorial de 20 es 2432902008176640000."); await wait(900);
+  say("orchestrator -> obsidian | invoke_subgraph | crear la nota Factorial con el resultado"); await wait(2100);
+  say("obsidian -> orchestrator | subgraph_done | [1930ms] Nota creada: Factorial.md"); await wait(700);
+  for (const w of "El factorial de 20 es 2432902008176640000. Lo guardé en la nota Factorial. (demo)".split(" ")) { chunk(w + " "); await wait(70); }
+  chunk(END); demoRunning = false; $("demo").disabled = false;
+});
+
+fetch("/api/status").then((r) => r.json()).then((s) => { $("model").textContent = s.model_label; $("gpu").textContent = s.gpu; })
+  .catch(() => { $("model").textContent = "unknown"; $("gpu").textContent = "GPU —"; });
+connect(); stats();
+</script>
+</body>
+</html>

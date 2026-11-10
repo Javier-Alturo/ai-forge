@@ -125,6 +125,12 @@ async def index() -> str:
     return html_path.read_text(encoding="utf-8")
 
 
+@app.get("/live", response_class=HTMLResponse)
+async def live() -> str:
+    """Vista animada: el orquestador y sus agentes, alimentada por /ws/logs y /ws/chat."""
+    return (HERE / "live.html").read_text(encoding="utf-8")
+
+
 @app.get("/api/agents")
 async def api_agents():
     """Estado de agentes para el panel izquierdo (todos activos mientras corre el servidor)."""
