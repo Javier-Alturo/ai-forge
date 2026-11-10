@@ -23,13 +23,13 @@
   button:hover { border-color: var(--accent); }
   button.primary { background: var(--accent); border-color: var(--accent); color: #06101f; font-weight: 600; }
   button:disabled { opacity: .5; cursor: default; }
-  main { display: grid; grid-template-columns: minmax(0, 1fr) 390px; min-height: calc(100vh - 58px); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 390px; height: calc(100vh - 58px); }
   .stage { position: relative; display: grid; place-items: center; padding: 8px; }
   svg { width: 100%; max-height: calc(100vh - 76px); }
-  aside { border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+  aside { border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
   section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
   section h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 0 0 8px; }
-  #answer { min-height: 96px; max-height: 30vh; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+  #answer { height: 150px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
   #answer.empty { color: var(--muted); }
   #answer .cursor { display: inline-block; width: 8px; height: 1em; background: var(--accent); vertical-align: -2px; animation: blink 1s steps(2) infinite; }
   form { display: flex; gap: 8px; }
@@ -73,7 +73,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes blink { 50% { opacity: 0; } }
   @keyframes slide { from { opacity: 0; transform: translateY(-6px); } }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } aside { border-left: 0; border-top: 1px solid var(--line); } svg { max-height: 62vh; } }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; height: auto; } aside { border-left: 0; border-top: 1px solid var(--line); } svg { max-height: 62vh; } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
