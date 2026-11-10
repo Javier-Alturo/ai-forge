@@ -1,155 +1,155 @@
 {
-  "timestamp": "2026-11-03T13:32:43",
+  "timestamp": "2026-11-09T21:24:32",
   "model": "qwen2.5:14b",
-  "git_commit": "05bdc1d",
+  "git_commit": "d02c4f5",
   "uses_private_data": false,
   "suites": {
     "routing": {
-      "n": 65,
-      "accuracy": 0.908,
+      "n": 148,
+      "accuracy": 0.905,
       "per_class": {
         "brain": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 2
+          "support": 4
         },
         "calendar": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 3
+          "support": 7
         },
         "code": {
           "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "support": 4
+          "recall": 0.875,
+          "f1": 0.933,
+          "support": 8
         },
         "computer_use": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 2
+          "support": 4
         },
         "email": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 3
+          "support": 6
         },
         "file": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 3
+          "support": 7
         },
         "find_real_leads": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 1
+          "support": 2
         },
         "fitness": {
-          "precision": 1.0,
+          "precision": 0.889,
           "recall": 1.0,
-          "f1": 1.0,
-          "support": 4
+          "f1": 0.941,
+          "support": 8
         },
         "github": {
           "precision": 1.0,
-          "recall": 0.5,
-          "f1": 0.667,
-          "support": 2
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 5
         },
         "image": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 2
+          "support": 5
         },
         "marketing": {
           "precision": 1.0,
-          "recall": 0.667,
-          "f1": 0.8,
-          "support": 3
+          "recall": 0.5,
+          "f1": 0.667,
+          "support": 6
         },
         "mcp": {
           "precision": 1.0,
-          "recall": 0.5,
-          "f1": 0.667,
-          "support": 2
+          "recall": 0.857,
+          "f1": 0.923,
+          "support": 7
         },
         "memory": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 4
+          "support": 8
         },
         "morning_briefing": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 2
+          "support": 4
         },
         "neural_network": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 3
+          "support": 6
         },
         "none": {
-          "precision": 0.5,
-          "recall": 1.0,
-          "f1": 0.667,
-          "support": 5
+          "precision": 0.75,
+          "recall": 0.913,
+          "f1": 0.824,
+          "support": 23
         },
         "obsidian": {
           "precision": 1.0,
-          "recall": 0.667,
-          "f1": 0.8,
-          "support": 3
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 6
         },
         "rag": {
           "precision": 1.0,
-          "recall": 0.5,
-          "f1": 0.667,
-          "support": 2
+          "recall": 0.25,
+          "f1": 0.4,
+          "support": 4
         },
         "rag_query_obsidian": {
-          "precision": 0.5,
-          "recall": 0.5,
-          "f1": 0.5,
-          "support": 2
+          "precision": 0.6,
+          "recall": 1.0,
+          "f1": 0.75,
+          "support": 3
         },
         "skillforge": {
           "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "support": 2
+          "recall": 0.5,
+          "f1": 0.667,
+          "support": 4
         },
         "taskforge": {
           "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "support": 5
+          "recall": 0.889,
+          "f1": 0.941,
+          "support": 9
         },
         "voice": {
           "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "support": 2
+          "recall": 0.75,
+          "f1": 0.857,
+          "support": 4
         },
         "web_search": {
-          "precision": 1.0,
+          "precision": 0.727,
           "recall": 1.0,
-          "f1": 1.0,
-          "support": 4
+          "f1": 0.842,
+          "support": 8
         }
       },
       "confusion": {
         "brain": {
-          "brain": 2,
+          "brain": 4,
           "calendar": 0,
           "code": 0,
           "computer_use": 0,
@@ -167,6 +167,7 @@
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -175,7 +176,7 @@
         },
         "calendar": {
           "brain": 0,
-          "calendar": 3,
+          "calendar": 7,
           "code": 0,
           "computer_use": 0,
           "email": 0,
@@ -192,6 +193,7 @@
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -201,7 +203,7 @@
         "code": {
           "brain": 0,
           "calendar": 0,
-          "code": 4,
+          "code": 7,
           "computer_use": 0,
           "email": 0,
           "file": 0,
@@ -214,9 +216,10 @@
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
-          "none": 0,
+          "none": 1,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -227,7 +230,7 @@
           "brain": 0,
           "calendar": 0,
           "code": 0,
-          "computer_use": 2,
+          "computer_use": 4,
           "email": 0,
           "file": 0,
           "find_real_leads": 0,
@@ -242,6 +245,7 @@
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -253,7 +257,7 @@
           "calendar": 0,
           "code": 0,
           "computer_use": 0,
-          "email": 3,
+          "email": 6,
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
@@ -267,6 +271,7 @@
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -279,7 +284,7 @@
           "code": 0,
           "computer_use": 0,
           "email": 0,
-          "file": 3,
+          "file": 7,
           "find_real_leads": 0,
           "fitness": 0,
           "github": 0,
@@ -292,6 +297,7 @@
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -305,7 +311,7 @@
           "computer_use": 0,
           "email": 0,
           "file": 0,
-          "find_real_leads": 1,
+          "find_real_leads": 2,
           "fitness": 0,
           "github": 0,
           "image": 0,
@@ -317,6 +323,7 @@
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -331,7 +338,7 @@
           "email": 0,
           "file": 0,
           "find_real_leads": 0,
-          "fitness": 4,
+          "fitness": 8,
           "github": 0,
           "image": 0,
           "marketing": 0,
@@ -342,6 +349,7 @@
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -357,16 +365,17 @@
           "file": 0,
           "find_real_leads": 0,
           "fitness": 0,
-          "github": 1,
+          "github": 5,
           "image": 0,
           "marketing": 0,
           "mcp": 0,
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
-          "none": 1,
+          "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -383,7 +392,7 @@
           "find_real_leads": 0,
           "fitness": 0,
           "github": 0,
-          "image": 2,
+          "image": 5,
           "marketing": 0,
           "mcp": 0,
           "memory": 0,
@@ -392,6 +401,7 @@
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -409,14 +419,15 @@
           "fitness": 0,
           "github": 0,
           "image": 0,
-          "marketing": 2,
+          "marketing": 3,
           "mcp": 0,
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
-          "none": 1,
+          "none": 3,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -435,13 +446,14 @@
           "github": 0,
           "image": 0,
           "marketing": 0,
-          "mcp": 1,
+          "mcp": 6,
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
           "none": 1,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -461,12 +473,13 @@
           "image": 0,
           "marketing": 0,
           "mcp": 0,
-          "memory": 4,
+          "memory": 8,
           "morning_briefing": 0,
           "neural_network": 0,
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -487,11 +500,12 @@
           "marketing": 0,
           "mcp": 0,
           "memory": 0,
-          "morning_briefing": 2,
+          "morning_briefing": 4,
           "neural_network": 0,
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -513,10 +527,11 @@
           "mcp": 0,
           "memory": 0,
           "morning_briefing": 0,
-          "neural_network": 3,
+          "neural_network": 6,
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -539,14 +554,15 @@
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
-          "none": 5,
+          "none": 21,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
           "voice": 0,
-          "web_search": 0
+          "web_search": 2
         },
         "obsidian": {
           "brain": 0,
@@ -564,9 +580,10 @@
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
-          "none": 1,
-          "obsidian": 2,
+          "none": 0,
+          "obsidian": 6,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
@@ -592,7 +609,34 @@
           "none": 0,
           "obsidian": 0,
           "rag": 1,
-          "rag_query_obsidian": 1,
+          "rag_index_obsidian_vault": 1,
+          "rag_query_obsidian": 2,
+          "skillforge": 0,
+          "taskforge": 0,
+          "voice": 0,
+          "web_search": 0
+        },
+        "rag_index_obsidian_vault": {
+          "brain": 0,
+          "calendar": 0,
+          "code": 0,
+          "computer_use": 0,
+          "email": 0,
+          "file": 0,
+          "find_real_leads": 0,
+          "fitness": 0,
+          "github": 0,
+          "image": 0,
+          "marketing": 0,
+          "mcp": 0,
+          "memory": 0,
+          "morning_briefing": 0,
+          "neural_network": 0,
+          "none": 0,
+          "obsidian": 0,
+          "rag": 0,
+          "rag_index_obsidian_vault": 0,
+          "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
           "voice": 0,
@@ -614,10 +658,11 @@
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
-          "none": 1,
+          "none": 0,
           "obsidian": 0,
           "rag": 0,
-          "rag_query_obsidian": 1,
+          "rag_index_obsidian_vault": 0,
+          "rag_query_obsidian": 3,
           "skillforge": 0,
           "taskforge": 0,
           "voice": 0,
@@ -639,14 +684,15 @@
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
-          "none": 0,
+          "none": 1,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 2,
           "taskforge": 0,
           "voice": 0,
-          "web_search": 0
+          "web_search": 1
         },
         "taskforge": {
           "brain": 0,
@@ -656,7 +702,7 @@
           "email": 0,
           "file": 0,
           "find_real_leads": 0,
-          "fitness": 0,
+          "fitness": 1,
           "github": 0,
           "image": 0,
           "marketing": 0,
@@ -667,9 +713,10 @@
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
-          "taskforge": 5,
+          "taskforge": 8,
           "voice": 0,
           "web_search": 0
         },
@@ -689,13 +736,14 @@
           "memory": 0,
           "morning_briefing": 0,
           "neural_network": 0,
-          "none": 0,
+          "none": 1,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
-          "voice": 2,
+          "voice": 3,
           "web_search": 0
         },
         "web_search": {
@@ -717,11 +765,12 @@
           "none": 0,
           "obsidian": 0,
           "rag": 0,
+          "rag_index_obsidian_vault": 0,
           "rag_query_obsidian": 0,
           "skillforge": 0,
           "taskforge": 0,
           "voice": 0,
-          "web_search": 4
+          "web_search": 8
         }
       },
       "errors": [
@@ -734,12 +783,11 @@
           "source": "generic"
         },
         {
-          "text": "Muéstrame los pull requests abiertos del repositorio demo",
+          "text": "Indexa los documentos de data/documents y dime de qué tratan",
           "expected": [
-            "github",
-            "mcp"
+            "rag"
           ],
-          "predicted": "none",
+          "predicted": "rag_index_obsidian_vault",
           "source": "generic"
         },
         {
@@ -751,9 +799,9 @@
           "source": "generic"
         },
         {
-          "text": "Crea una nota en Obsidian con la lista de compras",
+          "text": "Crea una skill permanente que convierta millas a kilómetros",
           "expected": [
-            "obsidian"
+            "skillforge"
           ],
           "predicted": "none",
           "source": "generic"
@@ -767,44 +815,94 @@
           "source": "generic"
         },
         {
-          "text": "¿Cómo funciona el MemoryGate de AI-Forge según las notas del proyecto?",
+          "text": "Programa una función que detecte palíndromos y pruébala con 'reconocer'",
           "expected": [
-            "rag_query_obsidian",
-            "obsidian"
+            "code"
           ],
           "predicted": "none",
           "source": "generic"
-        }
-      ],
-      "seconds": 53.8
-    },
-    "grounding": {
-      "n": 16,
-      "grounding_rate": 0.938,
-      "ignore_rate": 0.0,
-      "outcomes": {
-        "grounded": 15,
-        "ignored": 0,
-        "wrong_tool": 1,
-        "no_tool": 0,
-        "error": 0
-      },
-      "failures": [
+        },
         {
-          "text": "¿Cuántos leads nuevos encontró la última búsqueda de clientes?",
-          "tool": [
+          "text": "¿Cuántos días seguidos llevo meditando?",
+          "expected": [
+            "taskforge"
+          ],
+          "predicted": "fitness",
+          "source": "generic"
+        },
+        {
+          "text": "Investiga qué necesitan las inmobiliarias pequeñas para proponerles un bot",
+          "expected": [
             "marketing",
-            "find_real_leads"
+            "web_search"
           ],
-          "outcome": "wrong_tool",
-          "called": [
-            "memory"
+          "predicted": "none",
+          "source": "generic"
+        },
+        {
+          "text": "Necesito un texto para venderle una página web a una panadería",
+          "expected": [
+            "marketing"
           ],
-          "answer": "No se encontraron registros específicos de la última búsqueda de clientes en la memoria actual. ¿Podrías proporcionar más detalles sobre cuándo se realizó la búsqueda o en qué plataforma fue ejecutada para ayudar a localizar la información más precisamente?",
+          "predicted": "none",
+          "source": "generic"
+        },
+        {
+          "text": "Te voy a hablar, pásalo a texto",
+          "expected": [
+            "voice"
+          ],
+          "predicted": "none",
+          "source": "generic"
+        },
+        {
+          "text": "De los manuales que te cargué, ¿cuál explica la garantía?",
+          "expected": [
+            "rag"
+          ],
+          "predicted": "rag_query_obsidian",
+          "source": "generic"
+        },
+        {
+          "text": "Enséñate a convertir pesos a dólares y que te quede para siempre",
+          "expected": [
+            "skillforge"
+          ],
+          "predicted": "web_search",
+          "source": "generic"
+        },
+        {
+          "text": "¿Por qué el cielo es azul?",
+          "expected": [
+            "none"
+          ],
+          "predicted": "web_search",
+          "source": "generic"
+        },
+        {
+          "text": "¿Cuál es el planeta más grande del sistema solar?",
+          "expected": [
+            "none"
+          ],
+          "predicted": "web_search",
           "source": "generic"
         }
       ],
-      "seconds": 19.3
+      "seconds": 107.3
+    },
+    "grounding": {
+      "n": 16,
+      "grounding_rate": 1.0,
+      "ignore_rate": 0.0,
+      "outcomes": {
+        "grounded": 16,
+        "ignored": 0,
+        "wrong_tool": 0,
+        "no_tool": 0,
+        "error": 0
+      },
+      "failures": [],
+      "seconds": 17.4
     },
     "memory_gate": {
       "n": 50,
@@ -959,7 +1057,7 @@
           "source": "generic"
         }
       ],
-      "seconds": 42.5
+      "seconds": 34.8
     },
     "rag": {
       "n_answerable": 20,
@@ -972,7 +1070,7 @@
       "answers": [
         {
           "question": "¿En qué año se fundó Órbita Café?",
-          "answer": "Órbita Café fue fundada en 2015.",
+          "answer": "Órbita Café se fundó en 2015.",
           "source": "generic"
         },
         {
@@ -987,7 +1085,7 @@
         },
         {
           "question": "¿Qué día de la semana cierra Órbita Café?",
-          "answer": "Órbita Café cierra los lunes para mantenimiento de la tostadora.",
+          "answer": "Órbita Café cierra los lunes por mantenimiento de la tostadora.",
           "source": "generic"
         },
         {
@@ -997,12 +1095,12 @@
         },
         {
           "question": "¿Cuántos gramos tiene la bolsa de Geisha más vendida?",
-          "answer": "La bolsa de Geisha más vendida por Órbita Café contiene 340 gramos.",
+          "answer": "La bolsa de Geisha más vendida tiene 340 gramos.",
           "source": "generic"
         },
         {
           "question": "¿Cuántos cafés hay que comprar en Órbita Café para recibir uno gratis?",
-          "answer": "Para recibir un café gratis en Órbita Café, se debe comprar 10 cafés.",
+          "answer": "Para recibir un café gratis en Órbita Café, hay que comprar 10 cafés.",
           "source": "generic"
         },
         {
@@ -1042,7 +1140,7 @@
         },
         {
           "question": "¿Con cuánta anticipación se deben pedir las vacaciones en Acme Labs?",
-          "answer": "Las vacaciones deben solicitarse con al menos 15 días de anticipación a través del portal interno.",
+          "answer": "Se deben solicitar las vacaciones con al menos 15 días de anticipación a través del portal interno.",
           "source": "generic"
         },
         {
@@ -1067,12 +1165,12 @@
         },
         {
           "question": "¿Cuánto queso lleva la receta de arepas?",
-          "answer": "La receta de arepas de queso indica que se deben usar 200 gramos de queso campesino rallado.",
+          "answer": "La receta de arepas de queso indica que se utilizan 200 gramos de queso campesino rallado.",
           "source": "generic"
         },
         {
           "question": "¿Cuál es el salario del líder técnico de Atlas?",
-          "answer": "El salario del líder técnico de Atlas no se especifica en la información proporcionada.",
+          "answer": "El documento no proporciona información sobre el salario del líder técnico de Atlas.",
           "source": "generic"
         },
         {
@@ -1082,22 +1180,22 @@
         },
         {
           "question": "¿Cuántas calorías tiene una arepa de queso de la receta?",
-          "answer": "El documento proporcionado no incluye información sobre el número de calorías por arepa de queso. La receta proporciona los ingredientes y el método de preparación, pero no menciona el valor calórico por unidad.",
+          "answer": "La receta proporcionada no incluye la información nutricional, como el contenido calórico de una arepa de queso.",
           "source": "generic"
         },
         {
           "question": "¿Órbita Café hace envíos a domicilio a Bogotá?",
-          "answer": "El documento no proporciona información sobre si Órbita Café realiza envíos a domicilio a Bogotá.",
+          "answer": "No se menciona en la información proporcionada si Órbita Café realiza envíos a domicilio a Bogotá.",
           "source": "generic"
         },
         {
           "question": "¿Qué versión de Redis usa el proyecto Atlas?",
-          "answer": "El documento técnico del proyecto Atlas no especifica la versión particular de Redis que se utiliza en la plataforma.",
+          "answer": "El documento técnico no especifica la versión exacta de Redis que usa el proyecto Atlas. Se menciona que se utiliza Redis para el caché, pero no se indica la versión particular.",
           "source": "generic"
         }
       ],
       "n_documents": 4,
-      "seconds": 42.8
+      "seconds": 22.6
     }
   }
 }

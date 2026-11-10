@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![Tests](https://img.shields.io/badge/tests-389-brightgreen)
-![Routing eval](https://img.shields.io/badge/routing%20eval-90.8%25-blue)
+![Routing eval](https://img.shields.io/badge/routing%20eval-90.5%25-blue)
 ![Agents](https://img.shields.io/badge/agents-17-purple)
 
 **AI-Forge** is a local AI orchestration system built with **LangGraph**. An orchestrator reads each request and hands it to one of 17 specialist agents, so the whole system works as one: it keeps long-term memory, acts on the user's machine and can even write new tools for itself.
@@ -298,8 +298,8 @@ python -m evals.run --suite routing --model qwen2.5:7b
 
 | Suite | Dataset | Metric | Result |
 |---|---|---|---|
-| Orchestrator routing | 65 requests across 23 tools | First tool chosen is correct | **90.8%** |
-| Grounding | 16 requests, full tool loop with canned agent results | Right agent called and its facts in the answer | **93.8%** (15/16) |
+| Orchestrator routing | 148 requests across 23 tools | First tool chosen is correct | **90.5%** |
+| Grounding | 16 requests, full tool loop with canned agent results | Right agent called and its facts in the answer | **100%** (16/16) |
 | | | Right agent called but its result ignored | **0%** |
 | MemoryGate | 50 turns (fact / preference / decision / event / ephemeral) | Type accuracy | **78.0%** |
 | | | EPHEMERAL leak rate (would store small talk; target 0%) | **10.0%** |
@@ -309,9 +309,13 @@ python -m evals.run --suite routing --model qwen2.5:7b
 
 What the numbers show:
 
-- **Routing** now fails mostly by answering directly when a tool was needed (5 of 6 misses). Treat
-  90.8% with care: this set helped choose the current prompt, and on the 23 requests added after
-  that comparison, the old and new prompts both scored about 83-87%.
+- **Routing** misses are half direct answers when a tool was needed (7 of 14) and half a
+  neighbouring tool (the RAG agent vs. the Obsidian query, general knowledge sent to web search).
+- **Tool descriptions decide routing.** The prompt does not list the tools, so each description now
+  says when to use the tool instead of how it is built. On 83 requests written apart from the
+  descriptions (now part of the set), accuracy went from 74.5% to 95.7% on 47 of them and from
+  61.1% to 80.6% on 36 phrased to avoid the descriptions' wording. Trust the second pair more, and
+  note that the same author wrote the requests and the descriptions.
 - **Garbled tool calls** were behind many "no tool" answers: `qwen2.5:14b` sometimes corrupts the
   token that opens a call, so Ollama returns it as text, often with an invented result. These
   calls are now recovered. Removing the tool list from the system prompt took errors from 12 to 0

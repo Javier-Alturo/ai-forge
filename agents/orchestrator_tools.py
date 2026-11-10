@@ -22,55 +22,70 @@ from agents.subagent_runner import invoke_subagent
 log = get_logger("orchestrator")
 
 # (registry name, "module:getter", tool description)
+# The orchestrator prompt does not list the tools, so each description must say WHEN to use the
+# tool in the user's words, not how it is built.
 SUBAGENTS: list[tuple[str, str, str]] = [
     ("web_search", "agents.web_search_agent:get_web_search_agent",
-     "Delega en el agente de búsqueda web (DuckDuckGo; puede guardar hallazgos en memoria)."),
+     "Busca en internet. Úsalo cuando el usuario pida información actual o externa: noticias, precios, "
+     "resultados, versiones nuevas, 'busca en la web', 'averigua', 'verifica'."),
     ("memory", "agents.memory_agent:get_memory_agent",
-     "Delega en el agente de memoria ChromaDB + embeddings (recordatorios, búsqueda semántica)."),
+     "Memoria a largo plazo del usuario. Úsalo para GUARDAR algo ('recuerda que', 'acuérdate de', "
+     "'ten presente', 'guarda que') y para RECUPERAR lo guardado ('¿qué recuerdas de...?', "
+     "'¿qué sabes de mis...?', '¿qué te conté sobre...?'). No es para la conversación actual."),
     ("code", "agents.code_agent_graph:get_code_agent",
-     "Delega en el agente de código Python (generar y ejecutar; opcional memoria)."),
+     "Escribe y EJECUTA código Python. Úsalo cuando el usuario pida un script, un programa, una función, "
+     "'calcula con Python', 'ejecuta', 'corre'. Para redes neuronales o PyTorch usa el agente de redes."),
     ("neural_network", "agents.neural_network_agent:get_neural_network_agent",
-     "Delega en el agente de redes neuronales PyTorch (diseño, código, entrenamiento, guardar métricas en memoria)."),
+     "Redes neuronales con PyTorch. Úsalo SIEMPRE que el usuario pida diseñar o entrenar una red, un "
+     "perceptrón, una CNN, una LSTM, un autoencoder o cualquier modelo de deep learning."),
     ("fitness", "agents.fitness_agent:get_fitness_agent",
-     "Delega en el agente de fitness (sesiones, PRs, historial, lesiones, reporte semanal)."),
+     "Entrenamiento físico del usuario. Úsalo para registrar sesiones ('hoy hice...', 'anota que corrí...') "
+     "y para consultar rutina de gimnasio, récords, marcas, progreso, lesiones o el reporte semanal."),
     ("taskforge", "agents.taskforge_agent:get_taskforge_agent",
-     "Delega en el agente TaskForge: tareas del dia, metas a largo plazo, habitos, recordatorios por WhatsApp "
-     "y metricas de productividad."),
+     "Productividad personal. Úsalo para tareas (agregar, completar, listar pendientes), metas a largo "
+     "plazo, hábitos y rachas, recordatorios ('recuérdame a las...') y métricas de la semana."),
     ("marketing", "agents.marketing_agent:get_marketing_agent",
-     "Delega en el agente de marketing (buscar clientes/leads reales con scraper, research, contenido, "
-     "propuestas, outreach)."),
+     "Marketing y ventas. Úsalo cuando el usuario pida REDACTAR mensajes de outreach, mensajes en frío, "
+     "propuestas para clientes, posts o copy comercial, investigar un nicho, o buscar clientes y leads."),
     ("file", "agents.file_agent:get_file_agent",
-     "Delega en el agente de archivos del sistema (leer, escribir, listar, mover/copiar, buscar)."),
+     "Archivos y carpetas del computador. Úsalo para leer, escribir, listar, mover, copiar o buscar "
+     "archivos locales."),
     ("email", "agents.email_agent:get_email_agent",
-     "Delega en el agente de Gmail en solo lectura (listar y buscar correos; OAuth2)."),
+     "Correo Gmail del usuario en solo lectura. Úsalo para listar o buscar correos, ver la bandeja de "
+     "entrada o saber quién escribió. No puede enviar correos."),
     ("calendar", "agents.calendar_agent:get_calendar_agent",
-     "Delega en el agente de Google Calendar (mismas credenciales OAuth que Gmail)."),
+     "Google Calendar del usuario. Úsalo para ver la agenda, consultar eventos o reuniones de un día, y "
+     "para crear, agendar o borrar eventos y citas."),
     ("voice", "agents.voice_agent:get_voice_agent",
-     "Delega en el agente de voz (micrófono + Whisper local)."),
+     "Micrófono. Úsalo cuando el usuario pida grabar su voz, dictar, escuchar o transcribir audio a texto."),
     ("image", "agents.image_agent:get_image_agent",
-     "Delega en el agente de imágenes Stable Diffusion (diffusers, CUDA recomendada)."),
+     "Genera imágenes. Úsalo cuando el usuario pida crear, generar, dibujar o hacer una imagen, "
+     "ilustración, retrato o dibujo."),
     ("computer_use", "agents.computer_use_agent:get_computer_use_agent",
-     "Delega en computer use: captura de pantalla, clic, teclado, mouse, abrir apps (PyAutoGUI + llava)."),
+     "Pantalla del computador. Úsalo cuando el usuario pida una captura o pantallazo, saber qué hay en "
+     "la pantalla o qué ventana está abierta, o controlar mouse, teclado y aplicaciones."),
     ("github", "agents.github_agent:get_github_agent",
-     "Delega en GitHub: repos, archivos, issues, PRs (requiere GITHUB_TOKEN)."),
+     "GitHub remoto por API. Úsalo para consultar repositorios en GitHub: listar, abrir o cerrar issues, "
+     "ver pull requests abiertos y leer archivos de un repo remoto."),
     ("rag", "agents.rag_agent:get_rag_agent",
-     "Delega en RAG: indexar/consultar documentos en data/documents/ (LlamaIndex + Chroma)."),
+     "Documentos del usuario en data/documents (PDF, manuales, contratos). Úsalo para indexarlos o para "
+     "responder 'según mis documentos'. Para notas de Obsidian usa las herramientas de Obsidian."),
     ("obsidian", "agents.obsidian_agent:get_obsidian_agent",
-     "Delega en el agente de Obsidian (leer, escribir, añadir, buscar notas Markdown en el vault)."),
+     "Notas de Obsidian. Úsalo para crear, leer, editar, añadir texto o buscar una nota concreta en el "
+     "vault del usuario."),
     ("brain", "agents.brain_agent:get_brain_agent",
-     "Delega en el agente Cerebro. Ejecuta revisiones automáticas de notas recientes y genera insights "
-     "o reportes semanales."),
+     "Segundo cerebro. Úsalo cuando el usuario pida analizar sus notas recientes y obtener insights, "
+     "conclusiones o un resumen semanal de lo que escribió."),
     ("morning_briefing", "agents.morning_briefing_agent:get_morning_briefing_agent",
-     "Delega en el agente de Morning Briefing. Genera un reporte completo diario recopilando clima, calendario, "
-     "correos, noticias RSS, tareas pendientes y contexto de proyectos."),
+     "Briefing diario. Úsalo cuando el usuario pida el reporte o resumen de la mañana o del día: clima, "
+     "calendario, correos, noticias y tareas en un solo informe."),
     ("skillforge", "agents.skillforge_agent:get_skillforge_agent",
-     "Delega en el agente SkillForge (Creador de Habilidades). Úsalo cuando necesites programar y guardar una "
-     "nueva herramienta o skill permanente."),
+     "Crea herramientas nuevas y permanentes. Úsalo cuando el usuario pida crear o guardar una skill o "
+     "herramienta para reutilizarla después."),
     ("mcp_agent", "agents.mcp_agent:get_mcp_agent",
-     "Delega en el agente MCP especializado. Úsalo EXCLUSIVAMENTE para interactuar con el control de versiones "
-     "y repositorios: hacer commits, push, revisar diffs, listar ramas y crear Pull Requests en GitHub. Pásale "
-     "todos los detalles técnicos exactos (mensajes de commit, nombres de ramas, body del PR). "
-     "Push y merge requieren aprobación humana."),
+     "Git en el repositorio LOCAL. Úsalo para commits, ramas, diffs, estado de cambios, push y crear "
+     "Pull Requests desde la rama actual. Pásale los detalles exactos (mensaje de commit, nombre de "
+     "rama, body del PR). Push y merge requieren aprobación humana."),
 ]
 
 

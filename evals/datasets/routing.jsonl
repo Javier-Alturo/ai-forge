@@ -64,3 +64,86 @@
 {"text": "¿Cómo funciona el MemoryGate de AI-Forge según las notas del proyecto?", "expected": ["rag_query_obsidian", "obsidian"]}
 {"text": "Gracias, eso era todo", "expected": ["none"]}
 {"text": "¿Qué fue lo primero que te pregunté en esta conversación?", "expected": ["none"]}
+{"text": "¿Quién ganó el partido de anoche?", "expected": ["web_search"]}
+{"text": "Averigua cuánto cuesta hoy una RTX 5080", "expected": ["web_search"]}
+{"text": "Ten presente que prefiero las reuniones por la tarde", "expected": ["memory"]}
+{"text": "¿Qué te había contado sobre mi proyecto de tesis?", "expected": ["memory"]}
+{"text": "Necesito un script que convierta una lista de temperaturas de Celsius a Fahrenheit y lo ejecutes", "expected": ["code"]}
+{"text": "Programa una función que detecte palíndromos y pruébala con 'reconocer'", "expected": ["code"]}
+{"text": "Arma un autoencoder pequeño en PyTorch y entrénalo unas épocas", "expected": ["neural_network"]}
+{"text": "Quiero una red LSTM sencilla para predecir una serie sintética", "expected": ["neural_network"]}
+{"text": "Anota que hoy corrí 5 km en 28 minutos", "expected": ["fitness"]}
+{"text": "¿Cómo va mi progreso en dominadas este mes?", "expected": ["fitness"]}
+{"text": "Marca como hecha la tarea de enviar el informe", "expected": ["taskforge"]}
+{"text": "¿Cuántos días seguidos llevo meditando?", "expected": ["taskforge"]}
+{"text": "Escribe un post para LinkedIn ofreciendo mis servicios de automatización", "expected": ["marketing"]}
+{"text": "Investiga qué necesitan las inmobiliarias pequeñas para proponerles un bot", "expected": ["marketing", "web_search"]}
+{"text": "Dime qué hay dentro de la carpeta Descargas", "expected": ["file"]}
+{"text": "Copia el archivo config.yaml a la carpeta respaldo", "expected": ["file"]}
+{"text": "¿Me escribió alguien de recursos humanos esta semana?", "expected": ["email"]}
+{"text": "Revisa mi bandeja de entrada y dime lo más urgente", "expected": ["email"]}
+{"text": "¿Qué tengo en la agenda para el martes?", "expected": ["calendar"]}
+{"text": "Borra la cita del dentista del viernes", "expected": ["calendar"]}
+{"text": "Voy a dictarte una nota, grábala", "expected": ["voice"]}
+{"text": "Dibuja un paisaje de montañas nevadas al amanecer", "expected": ["image"]}
+{"text": "Necesito una ilustración de un zorro leyendo un libro", "expected": ["image"]}
+{"text": "¿Qué se ve ahora mismo en mi monitor?", "expected": ["computer_use"]}
+{"text": "Lista los issues abiertos del repo demo", "expected": ["github", "mcp"]}
+{"text": "¿Qué archivos hay en la raíz del repositorio demo en GitHub?", "expected": ["github", "mcp"]}
+{"text": "En el PDF del contrato que indexé, ¿cuál es la fecha de entrega?", "expected": ["rag"]}
+{"text": "Agrega a mi nota de Obsidian 'Pendientes' la línea comprar cable HDMI", "expected": ["obsidian"]}
+{"text": "Abre mi nota de Obsidian llamada Recetas y léemela", "expected": ["obsidian"]}
+{"text": "Revisa lo que anoté estos días y saca conclusiones", "expected": ["brain"]}
+{"text": "Hazme el briefing del día", "expected": ["morning_briefing"]}
+{"text": "Guarda una herramienta nueva que calcule el IMC para usarla después", "expected": ["skillforge"]}
+{"text": "Muéstrame el diff de los cambios sin commitear", "expected": ["mcp"]}
+{"text": "Crea una rama llamada feature-login y cámbiate a ella", "expected": ["mcp"]}
+{"text": "Commitea los cambios con el mensaje 'fix: typo'", "expected": ["mcp"]}
+{"text": "Encuentra clientes en Reddit que busquen desarrolladores de bots", "expected": ["find_real_leads", "marketing"]}
+{"text": "¿Qué dicen las notas del proyecto sobre el sandbox de código?", "expected": ["rag_query_obsidian", "obsidian"]}
+{"text": "Buenos días", "expected": ["none"]}
+{"text": "¿Qué es un LLM?", "expected": ["none"]}
+{"text": "¿Cuánto es el 20% de 350?", "expected": ["none"]}
+{"text": "¿Cómo se dice 'ventana' en inglés?", "expected": ["none"]}
+{"text": "Perfecto, eso era lo que necesitaba", "expected": ["none"]}
+{"text": "Explícame la diferencia entre RAM y disco duro", "expected": ["none"]}
+{"text": "¿Puedes repetir lo último que dijiste?", "expected": ["none"]}
+{"text": "Dame una frase motivadora", "expected": ["none"]}
+{"text": "¿Qué es mejor para empezar, Python o JavaScript?", "expected": ["none"]}
+{"text": "¿Cuántos minutos tiene un día?", "expected": ["none"]}
+{"text": "¿A cómo amaneció el euro?", "expected": ["web_search"]}
+{"text": "¿Ya estrenaron la nueva temporada de esa serie de dragones?", "expected": ["web_search"]}
+{"text": "Que no se te olvide: mi hermana cumple el 4 de marzo", "expected": ["memory"]}
+{"text": "¿Cuál era el lenguaje que te dije que quería aprender?", "expected": ["memory"]}
+{"text": "Saca los números primos menores que 50 con Python", "expected": ["code"]}
+{"text": "Simula 1000 lanzamientos de un dado y dime el promedio", "expected": ["code"]}
+{"text": "Móntame un clasificador de imágenes pequeño con capas convolucionales y ponlo a aprender", "expected": ["neural_network"]}
+{"text": "Hoy hice pierna: sentadilla 4x8 con 90 kilos", "expected": ["fitness"]}
+{"text": "¿Me toca pecho o espalda mañana?", "expected": ["fitness"]}
+{"text": "Ponme en la lista de cosas por hacer llamar al banco", "expected": ["taskforge"]}
+{"text": "¿Cómo voy con el objetivo de leer 12 libros este año?", "expected": ["taskforge"]}
+{"text": "Necesito un texto para venderle una página web a una panadería", "expected": ["marketing"]}
+{"text": "¿Qué pesa más, la carpeta de fotos o la de videos?", "expected": ["file"]}
+{"text": "Renombra informe_final.docx a informe_v2.docx", "expected": ["file"]}
+{"text": "¿Llegó la confirmación del vuelo?", "expected": ["email"]}
+{"text": "¿Estoy libre el jueves a las 4?", "expected": ["calendar"]}
+{"text": "Resérvame un espacio el miércoles a las 9 para estudiar inglés", "expected": ["calendar"]}
+{"text": "Te voy a hablar, pásalo a texto", "expected": ["voice"]}
+{"text": "Quiero un logo minimalista de un colibrí", "expected": ["image"]}
+{"text": "¿Qué programa tengo en primer plano?", "expected": ["computer_use"]}
+{"text": "¿Hay tickets sin resolver en el repo demo?", "expected": ["github", "mcp"]}
+{"text": "De los manuales que te cargué, ¿cuál explica la garantía?", "expected": ["rag"]}
+{"text": "Apunta en mi vault una página nueva titulada Viaje a Cartagena", "expected": ["obsidian"]}
+{"text": "¿Qué patrones ves en lo que he venido escribiendo últimamente?", "expected": ["brain"]}
+{"text": "¿Qué me espera hoy? Dame el panorama completo", "expected": ["morning_briefing"]}
+{"text": "Enséñate a convertir pesos a dólares y que te quede para siempre", "expected": ["skillforge"]}
+{"text": "¿Qué cambié desde el último commit?", "expected": ["mcp"]}
+{"text": "Sube lo que tengo a una rama nueva llamada pruebas", "expected": ["mcp"]}
+{"text": "Qué tal, ¿todo bien?", "expected": ["none"]}
+{"text": "¿Por qué el cielo es azul?", "expected": ["none"]}
+{"text": "¿Cuánto es 7 por 8?", "expected": ["none"]}
+{"text": "Dime un sinónimo de rápido", "expected": ["none"]}
+{"text": "Listo, gracias", "expected": ["none"]}
+{"text": "¿Qué es una variable en programación?", "expected": ["none"]}
+{"text": "Dilo otra vez pero más simple", "expected": ["none"]}
+{"text": "¿Cuál es el planeta más grande del sistema solar?", "expected": ["none"]}
