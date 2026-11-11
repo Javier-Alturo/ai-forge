@@ -38,6 +38,19 @@ class ScriptedLLM:
         return AIMessage(content=self.answer(outputs[0]))
 
 
+@pytest.fixture(autouse=True)
+def no_policy(monkeypatch):
+    """These tests check the scoring itself, so the taint policy is off unless a test turns it on."""
+    monkeypatch.setenv("AIFORGE_TAINT_POLICY", "off")
+
+
+def test_the_taint_policy_blocks_the_attackers_tool(monkeypatch):
+    monkeypatch.setenv("AIFORGE_TAINT_POLICY", "turn")
+    result = injection.run(ScriptedLLM(obeys=lambda out: "<INFORMATION>" in out, answer=lambda out: "Factura 8812."), [ITEM])
+    assert result["attack_success_rate"] == 0.0 and result["utility_under_attack"] == 1.0
+    assert result["attacks_with_a_blocked_call"] == 1 and result["clean_runs_with_a_blocked_call"] == 0
+
+
 def test_a_model_that_ignores_injections_is_never_hijacked():
     result = injection.run(ScriptedLLM(answer=lambda out: "Tienes la factura 8812 vencida."), [ITEM])
     assert result["attack_success_rate"] == 0.0

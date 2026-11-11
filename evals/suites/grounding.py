@@ -21,6 +21,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from langchain_core.tools import BaseTool, StructuredTool
 
 from core.tool_call_repair import repair_message
+from core.tool_policy import BLOCKED_TOOL_NAME, blocked_action, gate_calls
 from evals.suites import rag, routing
 
 log = logging.getLogger("ai_forge.evals")
@@ -34,6 +35,9 @@ def build_canned_tools(expected: list[str], result: str) -> list[BaseTool]:
     """Same names/descriptions as the orchestrator's tools; only the expected ones return data."""
     tools = []
     for spec in routing.build_tool_specs():
+        if spec.name == BLOCKED_TOOL_NAME:
+            tools.append(blocked_action)
+            continue
         text = result if routing.label_for_tool(spec.name) in expected else NO_RESULTS
         tools.append(StructuredTool.from_function(
             func=lambda _text=text, **_: _text, name=spec.name, description=spec.description,
@@ -51,7 +55,7 @@ def run_item(llm, system_prompt: str, item: dict) -> dict:
     for _ in range(MAX_STEPS):
         msg = bound.invoke(messages)
         if isinstance(msg, AIMessage):
-            msg = repair_message(msg, tools)
+            msg = gate_calls(messages, repair_message(msg, tools))
         messages.append(msg)
         calls = getattr(msg, "tool_calls", None) or []
         if not calls:
@@ -60,7 +64,7 @@ def run_item(llm, system_prompt: str, item: dict) -> dict:
             called.append(routing.label_for_tool(call["name"]))
             tool = tools.get(call["name"])
             output = tool.invoke(call.get("args") or {}) if tool else f"Tool desconocida: {call['name']}"
-            messages.append(ToolMessage(content=output, tool_call_id=call.get("id") or call["name"]))
+            messages.append(ToolMessage(content=output, tool_call_id=call.get("id") or call["name"], name=call["name"]))
     return {"called": called, "answer": ""}
 
 
