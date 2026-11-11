@@ -18,6 +18,7 @@ from agents.logger import get_logger, set_trace_id
 from agents.message_utils import extract_final_ai_text
 from agents.orchestrator_tools import build_orchestrator_tools
 from agents.subagent_runner import get_model_router, invoke_subagent
+from core.external_content import guard_messages
 from core.tool_call_repair import repair_message
 from core.tool_policy import blocked_action, gate_calls
 from observability.tracing import with_tracing
@@ -77,9 +78,20 @@ def get_orchestrator_graph():
             prompt=ORCH_PROMPT,
             name="orchestrator_agent",
             checkpointer=_CHECKPOINTER,
+            pre_model_hook=make_guard_hook(llm),
             post_model_hook=make_repair_hook([tool.name for tool in base_tools]),
         )
     return _ORCHESTRATOR
+
+
+def make_guard_hook(llm):
+    """Graph node run before each LLM turn: external content is made safe to read
+    (core/external_content.py). Only the model's input changes, not the stored conversation."""
+
+    def guard_external_content(state: dict[str, Any]) -> dict[str, Any]:
+        return {"llm_input_messages": guard_messages(state["messages"], llm)}
+
+    return guard_external_content
 
 
 def make_repair_hook(tool_names: list[str]):
