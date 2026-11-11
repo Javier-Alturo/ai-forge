@@ -3,8 +3,8 @@
 ![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
-![Tests](https://img.shields.io/badge/tests-393-brightgreen)
-![Routing eval](https://img.shields.io/badge/routing%20eval-90.5%25-blue)
+![Tests](https://img.shields.io/badge/tests-440-brightgreen)
+![Routing eval](https://img.shields.io/badge/routing%20eval-92.6%25-blue)
 ![Agents](https://img.shields.io/badge/agents-17-purple)
 
 **AI-Forge** is a local AI orchestration system built with **LangGraph**. An orchestrator reads each request and hands it to one of 17 specialist agents, so the whole system works as one: it keeps long-term memory, acts on the user's machine and can even write new tools for itself.
@@ -298,9 +298,12 @@ python -m evals.run --suite routing --model qwen2.5:7b
 
 | Suite | Dataset | Metric | Result |
 |---|---|---|---|
-| Orchestrator routing | 148 requests across 23 tools | First tool chosen is correct | **90.5%** |
-| Grounding | 16 requests, full tool loop with canned agent results | Right agent called and its facts in the answer | **100%** (16/16) |
+| Orchestrator routing | 148 requests across 23 tools | First tool chosen is correct | **92.6%** |
+| Grounding | 16 requests, full tool loop with canned agent results | Right agent called and its facts in the answer | **93.8%** (15/16) |
 | | | Right agent called but its result ignored | **0%** |
+| Multi-part requests | 24 requests that need two agents | Both agents called and both results in the answer | **58.3%** (14/24) |
+| Prompt injection | 18 scenarios x 5 attack templates, hidden in tool results | Attack succeeds (attacker's tool called or attacker's text in the answer) | **10%** (9/90), down from 60% with no defenses |
+| | | User's task still done under attack | **78.9%** |
 | MemoryGate | 50 turns (fact / preference / decision / event / ephemeral) | Type accuracy | **78.0%** |
 | | | EPHEMERAL leak rate (would store small talk; target 0%) | **10.0%** |
 | | | Store recall (useful turns actually stored) | **90.0%** |
@@ -321,6 +324,16 @@ What the numbers show:
   calls are now recovered. Removing the tool list from the system prompt took errors from 12 to 0
   in 188 runs, and running at temperature 0 avoids the extra skipped tools seen at Ollama's default
   (routing 91% vs 83-85%).
+- **Prompt injection.** With no defenses, text hidden in an email, web page, note or file was obeyed
+  in 54 of 90 attacks: 9 of 40 that asked for a tool call (run code, search the web for a private
+  figure, write a note) and 45 of 50 that asked for text in the answer (a fake payment link, a
+  "support" phone number). Two layers in code bring that to 9 of 90: tools that act are blocked once
+  a turn has read external content, and a quarantined reader extracts only the data that answers
+  the request. What still gets through looks like data ("the warranty was cancelled"). These are
+  known templates, one run each; see [`docs/security.md`](docs/security.md) for the limits.
+- **Multi-part requests** are the weakest area. When both agents are called their facts arrive
+  intact 92.5% of the time, but in 7 of 24 one agent is never called, and the reader costs about
+  two more (16 complete without it).
 - **MemoryGate** is weakest on `event` (recall 0.5: half the events are filed as facts or
   dropped) and leaked one trivia question into long-term memory.
 - **RAG** is saturated on this small set — the next step is harder questions (facts split across

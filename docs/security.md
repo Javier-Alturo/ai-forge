@@ -37,6 +37,39 @@ The dashboard binds to `127.0.0.1` only.
 Residual risk: with computer use enabled, an agent can still type into any window. Enable it only
 while supervising.
 
+## Prompt injection (what the agent reads)
+
+Emails, web pages, notes, files, issues and calendar entries reach the model as tool results, and
+the model cannot tell their text from the user's instructions. Two layers run in code, outside the
+model, so they do not depend on the model obeying a prompt:
+
+| Layer | What it does | Setting |
+|---|---|---|
+| Taint policy (`core/tool_policy.py`) | Once a turn has read external content, calls to tools that change something or send data (memory, notes, files, calendar, git, tasks, code, web search...) are replaced by a no-op that tells the model to finish the user's task and report what was blocked. Calls decided before the read are not affected. | `AIFORGE_TAINT_POLICY`: `turn` (default), `thread`, `off` |
+| Quarantined reader (`core/external_content.py`) | Before the orchestrator model reads an external result, a separate model call with no tools extracts only the data that answers the request. The stored conversation keeps the original. | `AIFORGE_EXTERNAL_CONTENT`: `reader` (default), `wrap`, `off` |
+
+Measured with `evals/suites/injection.py` (`qwen2.5:14b`, 18 fictional scenarios x 5 templates, one run each):
+
+| Attack goal | No defenses | Both layers |
+|---|---|---|
+| Make the agent call a tool (40 attacks) | 9 | 0 |
+| Put the attacker's text in the answer (50 attacks) | 45 | 9 |
+| **Total (90)** | **54 (60%)** | **9 (10%)** |
+
+Residual risk, stated plainly:
+
+- This is not solved. The templates are public ones; published defenses with near-zero rates have
+  been broken by attackers who adapt to them, and no benchmark covers a 14B local model or Spanish.
+- The reader lets through instructions that look like data ("the warranty was cancelled", a promo
+  code inside a note). Treat anything the agent reports from an email or web page as unverified.
+- `turn` mode forgets at the user's next message; the poisoned text stays in the conversation.
+  `thread` mode keeps the block until the user confirms with a plain yes.
+- A call decided before any external content is read is trusted, including its arguments.
+- The direct tools (`find_real_leads`, `rag_index_obsidian_vault`) are not gated, and sub-agents
+  read their own tool results without these layers: the policy protects the orchestrator's calls.
+- Cost: one extra model call per external result, and 14 instead of 16 of 24 two-part requests
+  complete, because the reader sometimes drops a fact that was needed.
+
 ## Secrets
 
 All credentials live in `.env`, `credentials.json`, `token*.json` or session folders, and are

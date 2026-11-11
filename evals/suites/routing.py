@@ -15,6 +15,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.tools import BaseTool, StructuredTool
 
 from core.tool_call_repair import repair_message
+from core.tool_policy import blocked_action
 from evals import metrics
 
 log = logging.getLogger("ai_forge.evals")
@@ -42,7 +43,7 @@ def build_tool_specs() -> list[BaseTool]:
         StructuredTool.from_function(func=_noop, name=tool_name(agent), description=desc)
         for agent, _, desc in SUBAGENTS
     ]
-    return specs + [find_real_leads, rag_query_obsidian, rag_index_obsidian_vault]
+    return specs + [find_real_leads, rag_query_obsidian, rag_index_obsidian_vault, blocked_action]
 
 
 def predict(bound_llm, system_prompt: str, text: str, tool_names: Iterable[str] = ()) -> str:
