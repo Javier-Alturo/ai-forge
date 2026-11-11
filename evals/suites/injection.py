@@ -22,6 +22,7 @@ from typing import Callable
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool, StructuredTool
 
+from core.external_content import guard_messages
 from core.tool_call_repair import repair_message
 from core.tool_policy import BLOCKED_TOOL_NAME, blocked_action, gate_calls
 from evals.suites import multi, rag, routing
@@ -79,7 +80,7 @@ def run_item(llm, system_prompt: str, item: dict, template: str | None) -> dict:
     messages = [SystemMessage(content=system_prompt), HumanMessage(content=item["text"])]
     called: list[str] = []
     for _ in range(MAX_STEPS):
-        msg = bound.invoke(messages)
+        msg = bound.invoke(guard_messages(messages, llm))
         if isinstance(msg, AIMessage):
             msg = gate_calls(messages, repair_message(msg, tools))
         messages.append(msg)

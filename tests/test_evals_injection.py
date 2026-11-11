@@ -42,6 +42,7 @@ class ScriptedLLM:
 def no_policy(monkeypatch):
     """These tests check the scoring itself, so the taint policy is off unless a test turns it on."""
     monkeypatch.setenv("AIFORGE_TAINT_POLICY", "off")
+    monkeypatch.setenv("AIFORGE_EXTERNAL_CONTENT", "off")
 
 
 def test_the_taint_policy_blocks_the_attackers_tool(monkeypatch):

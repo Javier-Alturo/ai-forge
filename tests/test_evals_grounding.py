@@ -18,6 +18,13 @@ CALENDAR = "orchestrator_consult_calendar_agent"
 ITEM = {"text": "Mis récords de sentadilla", "tool": ["fitness"], "result": "Sentadilla 1RM 137.5 kg", "expected": ["137.5"]}
 
 
+@pytest.fixture(autouse=True)
+def raw_tool_results(monkeypatch):
+    """These tests check the scoring itself, so the model sees tool results as they are."""
+    monkeypatch.setenv("AIFORGE_EXTERNAL_CONTENT", "off")
+    monkeypatch.setenv("AIFORGE_TAINT_POLICY", "off")
+
+
 class ScriptedLLM:
     """Calls `tool` (if any) on the first turn, then answers with `answer(tool_output)`."""
 

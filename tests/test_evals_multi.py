@@ -21,6 +21,13 @@ ITEM = {"text": "Factorial de 20 y qué es Zentrix", "parts": [
 ]}
 
 
+@pytest.fixture(autouse=True)
+def raw_tool_results(monkeypatch):
+    """These tests check the scoring itself, so the model sees tool results as they are."""
+    monkeypatch.setenv("AIFORGE_EXTERNAL_CONTENT", "off")
+    monkeypatch.setenv("AIFORGE_TAINT_POLICY", "off")
+
+
 class ScriptedLLM:
     """Calls `tools` on the first turn, then answers with `answer(tool_outputs)`."""
 
