@@ -19,6 +19,7 @@ from agents.message_utils import extract_final_ai_text
 from agents.orchestrator_tools import build_orchestrator_tools
 from agents.subagent_runner import get_model_router, invoke_subagent
 from core.tool_call_repair import repair_message
+from core.tool_policy import blocked_action, gate_calls
 from observability.tracing import with_tracing
 
 # Alias de compatibilidad (tests y código antiguo usan los nombres privados)
@@ -60,7 +61,7 @@ Si delegas, sintetiza la respuesta final."""
 def get_orchestrator_graph():
     global _ORCHESTRATOR
     if _ORCHESTRATOR is None:
-        base_tools = build_orchestrator_tools()
+        base_tools = [*build_orchestrator_tools(), blocked_action]
         router = get_model_router()
         try:
             llm, reason = router.get_model(prompt_token_count=0, temperature=ORCHESTRATOR_TEMPERATURE)
@@ -82,11 +83,15 @@ def get_orchestrator_graph():
 
 
 def make_repair_hook(tool_names: list[str]):
-    """Graph node run after each LLM turn: a tool call written as text becomes a real one."""
+    """Graph node run after each LLM turn: recovers tool calls written as text, then applies the
+    taint policy (core/tool_policy.py) to whatever calls the message ends up with."""
 
     def repair_tool_calls(state: dict[str, Any]) -> dict[str, Any]:
-        last = state["messages"][-1]
-        fixed = repair_message(last, tool_names) if isinstance(last, AIMessage) else last
+        messages = state["messages"]
+        last = messages[-1]
+        if not isinstance(last, AIMessage):
+            return {"messages": []}
+        fixed = gate_calls(messages[:-1], repair_message(last, tool_names))
         return {"messages": [fixed] if fixed is not last else []}
 
     return repair_tool_calls
