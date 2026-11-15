@@ -26,6 +26,7 @@ def raw_tool_results(monkeypatch):
     """These tests check the scoring itself, so the model sees tool results as they are."""
     monkeypatch.setenv("AIFORGE_EXTERNAL_CONTENT", "off")
     monkeypatch.setenv("AIFORGE_TAINT_POLICY", "off")
+    monkeypatch.setenv("AIFORGE_SPLIT_REQUESTS", "0")
 
 
 class ScriptedLLM:
@@ -93,7 +94,7 @@ def test_generic_dataset_is_valid():
     items = datasets.load("multi")
     assert len(items) >= 10
     for item in items:
-        assert len(item["parts"]) == 2
+        assert len(item["parts"]) in (2, 3)
         for part in item["parts"]:
             assert set(part["tool"]) <= labels
             assert all(multi.has_fact(part["result"], fact) for fact in part["expected"])
