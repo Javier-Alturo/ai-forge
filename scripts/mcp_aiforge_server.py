@@ -80,6 +80,9 @@ def _run_git(args: list[str], with_auth: bool = False) -> str:
     result = subprocess.run(
         ["git", "-c", "credential.helper="] + args,
         cwd=str(_ROOT),
+        # This server talks to its client over stdin. On Windows a child that inherits that pipe
+        # blocks while the server is reading it, so every git command timed out.
+        stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
         env=env,

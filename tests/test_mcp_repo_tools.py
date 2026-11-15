@@ -103,3 +103,17 @@ def test_github_api_refuses_public_repo(server, monkeypatch):
     monkeypatch.setattr(mod, "REPO_SLUG", "someone/ai-forge")
     with pytest.raises(GitGuardError):
         mod._github_api("GET", "pulls")
+
+
+def test_git_does_not_inherit_the_servers_stdin(server, monkeypatch):
+    """The MCP client owns stdin; a child that inherits it hangs on Windows while the server reads it."""
+    mod, _ = server
+    seen = {}
+
+    def fake_subprocess_run(cmd, **kwargs):
+        seen.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, stdout="main\n" if "branch" in cmd else "", stderr="")
+
+    monkeypatch.setattr(mod.subprocess, "run", fake_subprocess_run)
+    assert mod.aiforge_get_status().startswith("✅ Rama `main`")
+    assert seen["stdin"] is subprocess.DEVNULL
