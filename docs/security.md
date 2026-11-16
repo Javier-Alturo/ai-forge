@@ -67,7 +67,7 @@ Residual risk, stated plainly:
 - A call decided before any external content is read is trusted, including its arguments.
 - The direct tools (`find_real_leads`, `rag_index_obsidian_vault`) are not gated, and sub-agents
   read their own tool results without these layers: the policy protects the orchestrator's calls.
-- Cost: one extra model call per external result, and 14 instead of 16 of 24 two-part requests
+- Cost: one extra model call per external result, and, measured before the request splitter existed, 14 instead of 16 of 24 two-part requests
   complete, because the reader sometimes drops a fact that was needed.
 
 ## Secrets

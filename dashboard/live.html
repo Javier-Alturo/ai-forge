@@ -189,6 +189,7 @@ function handleLine(line) {
   else if (action === "invoke_subgraph" || action === "find_real_leads") dispatch(dst, detail);
   else if (action === "subgraph_done") finish(src, detail, false);
   else if (action === "subgraph_error" || action === "timeout_hard") finish(src, detail, true);
+  else if (action === "split_request") event("user", "Split into " + (detail || "").split(" | ").length + " tasks", detail);
   else if (action === "error") { busy(false); event("err", "Orchestrator", detail); }
 }
 

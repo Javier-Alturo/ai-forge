@@ -1,6 +1,6 @@
 """Multi-part eval: one request that needs two agents. Are both called, and are both results reported intact?
 
-Routing and grounding use one tool per request. Here every request has two independent parts, each
+Routing and grounding use one tool per request. Here every request has two or three independent parts, each
 with its own agent and canned result. Same loop as grounding: real orchestrator prompt and tool
 schemas, canned tool outputs.
 Dataset: evals/datasets/multi.jsonl ->
@@ -24,6 +24,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from langchain_core.tools import BaseTool, StructuredTool
 
 from core.external_content import guard_messages
+from core.request_splitter import split_request
 from core.tool_call_repair import repair_message
 from core.tool_policy import BLOCKED_TOOL_NAME, blocked_action, gate_calls
 from evals.suites import rag, routing
@@ -80,6 +81,16 @@ def run_item(llm, system_prompt: str, item: dict) -> dict:
     return {"called": called, "answer": ""}
 
 
+def run_request(llm, system_prompt: str, item: dict) -> dict:
+    """As the orchestrator does: independent tasks are split and each one is answered as its own turn."""
+    tasks = split_request(llm, item["text"])
+    if len(tasks) == 1:
+        return run_item(llm, system_prompt, item)
+    turns = [run_item(llm, system_prompt, {**item, "text": task}) for task in tasks]
+    called = [label for turn in turns for label in turn["called"]]
+    return {"called": called, "answer": "\n\n".join(turn["answer"] for turn in turns)}
+
+
 def part_status(part: dict, called: list[str], answer: str) -> tuple[bool, bool]:
     """(agent was called, its facts are in the answer)."""
     reached = any(label in part["tool"] for label in called)
@@ -121,7 +132,7 @@ def run(llm, items: list[dict], progress: Callable[[int, int], None] | None = No
     runs = []
     for i, item in enumerate(items, start=1):
         try:
-            runs.append(run_item(llm, ORCH_PROMPT, item))
+            runs.append(run_request(llm, ORCH_PROMPT, item))
         except Exception:  # one bad generation must not abort the whole eval
             log.exception("Multi-part run failed for %r", item["text"][:60])
             runs.append({"called": [], "answer": "", "outcome": "error"})
@@ -133,7 +144,7 @@ def run(llm, items: list[dict], progress: Callable[[int, int], None] | None = No
 def summary(result: dict) -> str:
     o = result["outcomes"]
     lines = [
-        f"Multi-part: {result['complete_rate']:.1%} complete ({result['n']} requests, 2 agents each)",
+        f"Multi-part: {result['complete_rate']:.1%} complete ({result['n']} requests, 2 or 3 agents each)",
         f"Parts whose agent was called: {result['parts_called_rate']:.1%}",
         f"Called parts reported intact: {result['parts_intact_rate']:.1%}",
         "  " + "  ".join(f"{k}={o[k]}" for k in OUTCOMES),

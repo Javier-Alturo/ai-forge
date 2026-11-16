@@ -19,6 +19,7 @@ from agents.message_utils import extract_final_ai_text
 from agents.orchestrator_tools import build_orchestrator_tools
 from agents.subagent_runner import get_model_router, invoke_subagent
 from core.external_content import guard_messages
+from core.request_splitter import split_request
 from core.tool_call_repair import repair_message
 from core.tool_policy import blocked_action, gate_calls
 from observability.tracing import with_tracing
@@ -142,6 +143,19 @@ def _run_memory_gate(user_text: str, response_text: str) -> None:
         a2a_log("orchestrator", "memory_gate", "error", str(e))
 
 
+def _independent_tasks(user_text: str) -> list[str]:
+    """The request as independent tasks (core/request_splitter.py). Each one is run as its own turn
+    on the same thread, because the local model is unreliable when one message needs several agents."""
+    try:
+        llm = get_llm(temperature=ORCHESTRATOR_TEMPERATURE)
+    except RuntimeError:  # no local or allowed cloud model for the splitter: handle it as one task
+        return [user_text]
+    tasks = split_request(llm, user_text)
+    if len(tasks) > 1:
+        a2a_log("orchestrator", "orchestrator", "split_request", " | ".join(tasks))
+    return tasks
+
+
 def run_turn(user_text: str, thread_id: str = "default") -> AIMessage:
     """Un turno de conversación con memoria de hilo (thread_id identifica la sesión)."""
     trace = uuid.uuid4().hex[:8]
@@ -153,20 +167,19 @@ def run_turn(user_text: str, thread_id: str = "default") -> AIMessage:
         {"configurable": {"thread_id": thread_id}, "recursion_limit": 25},
         name="orchestrator_turn", session_id=thread_id, tags=["orchestrator"],
     )
-    try:
-        final = app.invoke(
-            {"messages": [HumanMessage(content=user_text.strip())]},
-            config=config,
-        )
-        text = extract_final_ai_text(final)
-        body = text or "(sin respuesta)"
-    except GraphRecursionError:
-        a2a_log("orchestrator", "cli", "error", "Límite de recursión alcanzado (loops infinitos evitados).")
-        body = "Error: Alcanzé el límite máximo de pasos de pensamiento para esta solicitud. Por favor, sé más específico o simplifica tu petición."
-    except ResponseError as e:
-        log.warning("Ollama aborted the turn: %s", e)
-        a2a_log("orchestrator", "cli", "error", str(e))
-        body = MODEL_ERROR_MESSAGE
+    answers = []
+    for task in _independent_tasks(user_text.strip()):
+        try:
+            final = app.invoke({"messages": [HumanMessage(content=task)]}, config=config)
+            answers.append(extract_final_ai_text(final) or "(sin respuesta)")
+        except GraphRecursionError:
+            a2a_log("orchestrator", "cli", "error", "Límite de recursión alcanzado (loops infinitos evitados).")
+            answers.append("Error: Alcanzé el límite máximo de pasos de pensamiento para esta solicitud. Por favor, sé más específico o simplifica tu petición.")
+        except ResponseError as e:
+            log.warning("Ollama aborted the turn: %s", e)
+            a2a_log("orchestrator", "cli", "error", str(e))
+            answers.append(MODEL_ERROR_MESSAGE)
+    body = "\n\n".join(answers)
 
     # MemoryGate: evaluar el turno en background sin bloquear la respuesta al usuario
     _start_background(_run_memory_gate, user_text, body)
@@ -202,26 +215,30 @@ async def arun_turn_stream(user_text: str, thread_id: str = "default") -> AsyncG
         name="orchestrator_turn", session_id=thread_id, tags=["orchestrator"],
     )
     full_response: list[str] = []
-    try:
-        async for chunk in app.astream(
-            {"messages": [HumanMessage(content=user_text.strip())]},
-            config=config,
-            stream_mode="messages",
-        ):
-            msg, metadata = chunk
-            # Only the orchestrator's own words: no sub-agent output and no raw tool results.
-            if metadata.get("subagent") or not isinstance(msg, AIMessageChunk):
-                continue
-            for text in _text_parts(getattr(msg, "content", None)):
-                full_response.append(text)
-                yield text
-    except GraphRecursionError:
-        a2a_log("orchestrator", "dashboard", "error", "Límite de recursión alcanzado.")
-        yield "\n\nError: Alcanzé el límite máximo de pasos de pensamiento. Intenta de nuevo."
-    except ResponseError as e:
-        log.warning("Ollama aborted the turn: %s", e)
-        a2a_log("orchestrator", "dashboard", "error", str(e))
-        yield f"\n\n{MODEL_ERROR_MESSAGE}"
+    for position, task in enumerate(_independent_tasks(user_text.strip())):
+        if position:
+            full_response.append("\n\n")
+            yield "\n\n"
+        try:
+            async for chunk in app.astream(
+                {"messages": [HumanMessage(content=task)]},
+                config=config,
+                stream_mode="messages",
+            ):
+                msg, metadata = chunk
+                # Only the orchestrator's own words: no sub-agent output and no raw tool results.
+                if metadata.get("subagent") or not isinstance(msg, AIMessageChunk):
+                    continue
+                for text in _text_parts(getattr(msg, "content", None)):
+                    full_response.append(text)
+                    yield text
+        except GraphRecursionError:
+            a2a_log("orchestrator", "dashboard", "error", "Límite de recursión alcanzado.")
+            yield "\n\nError: Alcanzé el límite máximo de pasos de pensamiento. Intenta de nuevo."
+        except ResponseError as e:
+            log.warning("Ollama aborted the turn: %s", e)
+            a2a_log("orchestrator", "dashboard", "error", str(e))
+            yield f"\n\n{MODEL_ERROR_MESSAGE}"
 
     # MemoryGate: evaluar el turno completo en background después del stream
     if full_response:
